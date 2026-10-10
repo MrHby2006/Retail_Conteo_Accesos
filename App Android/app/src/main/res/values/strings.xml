@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Rentail_Conteo</string>
+
+    <string name="separador">Separador de clientes por tipos</string>
+    <string name="clientes">Clientes que compraron</string>
+    <string name="pasajeros">Clientes pasajeros</string>
 </resources>
