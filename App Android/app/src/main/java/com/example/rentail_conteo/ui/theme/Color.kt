@@ -29,3 +29,6 @@ val AcentoOscuro = Color(0xFFA3813F)
 val AcentoSuaveInv = Color(0xFFD4B572)
 
 val AcentoOscuroInv = Color(0xFFC5A059)
+
+// Boton
+val Primario = Color(0xFFC5A059)
