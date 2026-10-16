@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.example.rentail_conteo.model.AccesoItem
 import com.example.rentail_conteo.ui.components.Boton
 import com.example.rentail_conteo.ui.theme.Dimens
-import com.example.rentail_conteo.ui.viewmodel.DivisionViewModel
+import com.example.rentail_conteo.viewmodel.DivisionViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
