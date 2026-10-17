@@ -32,3 +32,5 @@ val AcentoOscuroInv = Color(0xFFC5A059)
 
 // Boton
 val Primario = Color(0xFFC5A059)
+
+val GrisDeshabilitado = Color(0xFFBDBAC7)

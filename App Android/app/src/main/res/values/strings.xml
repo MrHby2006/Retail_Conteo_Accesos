@@ -1,8 +1,23 @@
 <resources>
     <string name="app_name">Rentail_Conteo</string>
 
-    <string name="calendario">Calendario</string>
+    // Para división
+    <string name="calendario">Seleccionador de fechas</string>
+    <string name="desde_fecha">Desde: </string>
+    <string name="hasta_fecha">Hasta: </string>
     <string name="separador">Separador de clientes por tipos</string>
     <string name="clientes">Clientes que compraron</string>
-    <string name="pasajeros">Clientes pasajeros</string>
+    <string name="pasajeros">Clientes transeuntes</string>
+
+    // Para portón
+    <string name="descripcion">Descripción de la persona que entró</string>
+
+    // Para registro
+    <string name="nombre">Nombre completo: </string>
+    <string name="edad">Edad: </string>
+    <string name="correo">Correo electrónico: </string>
+    <string name="acompanante">Trae acompañante?: </string>
+    <string name="entrada">Portón por el que entró: </string>
+    <string name="boleta">Boleta: </string>
+
 </resources>

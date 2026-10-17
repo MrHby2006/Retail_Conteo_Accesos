@@ -4,4 +4,8 @@ package com.example.rentail_conteo.navigation
 sealed class Ruta(val ruta: String) {
     data object Login : Ruta("login")
     data object Division : Ruta("division")
+
+    data object Porton : Ruta("porton")
+
+    data object RegistrosClientes : Ruta("registroClientes")
 }

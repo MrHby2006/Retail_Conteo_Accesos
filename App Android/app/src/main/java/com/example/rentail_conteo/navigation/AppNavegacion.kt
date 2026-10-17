@@ -30,5 +30,13 @@ fun AppNavegacion() {
         composable(Ruta.Division.ruta) {
             DivisionScreen(viewModel = viewModel())
         }
+
+        composable(Ruta.Porton.ruta) {
+            PortonScreen(viewModel = viewModel())
+        }
+
+        composable(Ruta.RegistrosClientes.ruta) {
+            RegistrosClientesScreen(viewModel = viewModel())
+        }
     }
 }
