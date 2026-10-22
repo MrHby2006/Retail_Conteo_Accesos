@@ -4,9 +4,12 @@ package com.example.rentail_conteo.util
 // Está separado del ViewModel para poder reutilizarlo y probarlo solo.
 object ValidadorRut {
 
+    // "15.234.871-1" -> "152348711" (así se guarda en la BD)
+    fun limpiar(rutTexto: String): String =
+        rutTexto.replace(".", "").replace("-", "").trim().uppercase()
+
     fun esValido(rutTexto: String): Boolean {
-        // "15.234.871-1" -> "152348711"
-        val limpio = rutTexto.replace(".", "").replace("-", "").uppercase()
+        val limpio = limpiar(rutTexto)
         if (limpio.length < 8) return false
 
         val cuerpo = limpio.dropLast(1)      // "15234871"
