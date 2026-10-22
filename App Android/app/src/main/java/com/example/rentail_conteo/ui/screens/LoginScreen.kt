@@ -23,15 +23,16 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rentail_conteo.R
+import com.example.rentail_conteo.model.Usuario
 import com.example.rentail_conteo.ui.components.Boton
 import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.viewmodel.LoginViewModel
 
 // Pantalla de ingreso. Solo DIBUJA el estado y AVISA al ViewModel.
-// No recibe el NavController: avisa con onIngresoExitoso y la navegación decide.
+// No recibe el NavController: avisa con onIngreso(usuario) y la navegación decide a dónde ir según su rol.
 @Composable
 fun LoginScreen(
-    onIngresoExitoso: () -> Unit,
+    onIngreso: (Usuario) -> Unit,
     viewModel: LoginViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -78,10 +79,11 @@ fun LoginScreen(
 
             Spacer(Modifier.height(Dimens.espacioMedio))
 
-            // Botón de Harol (Boton.kt). Si el ViewModel dice "válido", avisamos.
+            // Botón de Harol (Boton.kt).
+            // ?.let = "si NO es null, ejecuta": solo avisa si el ViewModel encontró al colaborador
             Boton(
                 texto = "Ingresar",
-                onClick = { if (viewModel.onIngresar()) onIngresoExitoso() },
+                onClick = { viewModel.onIngresar()?.let(onIngreso) },
                 modifier = Modifier.fillMaxWidth()
             )
         }

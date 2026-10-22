@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.rentail_conteo.model.AccesoItem
+import com.example.rentail_conteo.ui.components.BarraSuperior
 import com.example.rentail_conteo.ui.components.Boton
 import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.viewmodel.DivisionViewModel
@@ -19,19 +20,14 @@ import com.example.rentail_conteo.viewmodel.DivisionViewModel
 fun DivisionScreen(
     viewModel: DivisionViewModel,
     modifier: Modifier = Modifier,
-    onConsultarClicked: () -> Unit = {}
+    onConsultarClicked: () -> Unit = {},
+    onCerrarSesion: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Consulta y Análisis por Acceso") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
+            BarraSuperior(titulo = "Consulta y Análisis por Acceso", onCerrarSesion = onCerrarSesion)
         }
     ) { innerPadding ->
         Column(
