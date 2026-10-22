@@ -1,6 +1,8 @@
 package com.example.rentail_conteo.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import com.example.rentail_conteo.data.RinconSurDbHelper
 import com.example.rentail_conteo.model.AccesoItem
 import com.example.rentail_conteo.model.DivisionUIState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -8,9 +10,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-class DivisionViewModel : ViewModel() {
+// AndroidViewModel: necesita el Context para leer los accesos desde la BD
+class DivisionViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val _uiState = MutableStateFlow(DivisionUIState())
+    private val db = RinconSurDbHelper.obtener(application)
+
+    private val _uiState = MutableStateFlow(DivisionUIState(accesosDisponibles = db.listarAccesos()))
     val uiState: StateFlow<DivisionUIState> = _uiState.asStateFlow()
 
     fun seleccionarAcceso(acceso: AccesoItem) {
