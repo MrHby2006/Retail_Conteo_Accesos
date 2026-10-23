@@ -80,6 +80,7 @@ import kotlinx.coroutines.launch
 fun RegistrosClientesScreen(
     cajero: Usuario,
     onCerrarSesion: () -> Unit,
+    onVolver: () -> Unit,          // vuelve a la elección Puerta / Caja
     viewModel: RegistrosClientesViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -129,7 +130,9 @@ fun RegistrosClientesScreen(
     }
 
     Scaffold(
-        topBar = { BarraSuperior(titulo = "Caja · ${cajero.primerNombre()}", onCerrarSesion = onCerrarSesion) },
+        topBar = {
+            BarraSuperior(titulo = "Caja · ${cajero.primerNombre()}", onCerrarSesion = onCerrarSesion, onVolver = onVolver)
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         // ANIMACIÓN: al elegir una persona, la búsqueda se desvanece y aparece el formulario (y al revés)
@@ -178,15 +181,7 @@ private fun BuscarComprador(uiState: RegistrosClientesUIState, viewModel: Regist
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-        item {
-            SeleccionChips(
-                titulo = "Entró por",
-                opciones = uiState.accesos,
-                seleccionada = uiState.filtroAcceso,
-                onSeleccionar = viewModel::onFiltroAcceso,
-                textoDe = { it.codigo }
-            )
-        }
+        // Sin filtro "Entró por": desde la caja no se ve por qué puerta entró la persona
         item {
             SeleccionChips(
                 titulo = "Rango de edad",
@@ -198,10 +193,19 @@ private fun BuscarComprador(uiState: RegistrosClientesUIState, viewModel: Regist
         }
         item {
             SeleccionChips(
-                titulo = "Color de la ropa",
+                titulo = "Color de la ropa (arriba)",
                 opciones = Opciones.coloresRopa,
                 seleccionada = uiState.filtroColor,
                 onSeleccionar = viewModel::onFiltroColor,
+                textoDe = { it }
+            )
+        }
+        item {
+            SeleccionChips(
+                titulo = "Color de la ropa (abajo)",
+                opciones = Opciones.coloresRopa,
+                seleccionada = uiState.filtroColorAbajo,
+                onSeleccionar = viewModel::onFiltroColorAbajo,
                 textoDe = { it }
             )
         }

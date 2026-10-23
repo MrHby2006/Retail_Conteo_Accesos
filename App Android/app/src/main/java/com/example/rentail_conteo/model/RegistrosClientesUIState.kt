@@ -7,11 +7,10 @@ import android.graphics.Bitmap
 //   personaElegida == null -> buscar: filtros + lista de personas que entraron y aún no compran
 //   personaElegida != null -> confirmar: datos opcionales del cliente + foto de la boleta
 data class RegistrosClientesUIState(
-    val accesos: List<AccesoItem> = emptyList(),
-    // Filtros (null = sin filtro)
-    val filtroAcceso: AccesoItem? = null,
+    // Filtros (null = sin filtro). Solo lo que el cajero puede VER de la persona.
     val filtroRango: String? = null,
-    val filtroColor: String? = null,
+    val filtroColor: String? = null,        // ropa de arriba
+    val filtroColorAbajo: String? = null,   // ropa de abajo
     val candidatos: List<PersonaIngreso> = emptyList(),
     // Confirmar compra
     val personaElegida: PersonaIngreso? = null,
