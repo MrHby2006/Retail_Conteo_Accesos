@@ -23,6 +23,9 @@ object Permisos {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_IMAGES
         else Manifest.permission.READ_EXTERNAL_STORAGE
 
+    // Notificaciones: desde Android 13 (API 33) hay que pedirlo; antes venía concedido al instalar
+    val NOTIFICACIONES: String = Manifest.permission.POST_NOTIFICATIONS
+
     fun tiene(context: Context, permiso: String): Boolean =
         ContextCompat.checkSelfPermission(context, permiso) == PackageManager.PERMISSION_GRANTED
 
