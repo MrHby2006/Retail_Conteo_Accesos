@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- PERMISOS paso 1: declarar. Notificaciones para avisar el fin del turno (Android 13+ lo pregunta) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- PERMISOS paso 1: declarar. Cámara y fotos para la boleta (el cajero) -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
@@ -34,6 +37,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Recibe la alarma programada y muestra el aviso de fin de turno.
+             exported=false: solo esta app (su AlarmManager) puede activarlo -->
+        <receiver
+            android:name=".notificaciones.AvisoTurnoReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

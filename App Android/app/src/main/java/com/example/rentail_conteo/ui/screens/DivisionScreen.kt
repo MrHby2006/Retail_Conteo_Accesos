@@ -1,8 +1,6 @@
 package com.example.rentail_conteo.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -20,7 +18,7 @@ import com.example.rentail_conteo.viewmodel.DivisionViewModel
 fun DivisionScreen(
     viewModel: DivisionViewModel,
     modifier: Modifier = Modifier,
-    onConsultarClicked: () -> Unit = {},
+    onConsultarClicked: (idAcceso: Int) -> Unit = {},
     onCerrarSesion: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -37,29 +35,37 @@ fun DivisionScreen(
                 .padding(Dimens.espacioPantalla),
             verticalArrangement = Arrangement.spacedBy(Dimens.espacioGrande)
         ) {
-            // Sección de selección de Fecha simulando el contexto del calendario
-            Text(
-                text = "Período seleccionado: ${uiState.diaSeleccionado} de ${uiState.mesSeleccionado}, ${uiState.anioSeleccionado}",
-                style = MaterialTheme.typography.titleMedium
-            )
+            // El período (hoy o todo el registro) se elige en la pantalla de indicadores
 
-            // Selector horizontal de Accesos (A1 a A4)
+            // Selector de Accesos (Todos, A1 a A4), uno debajo del otro y a lo ancho:
+            // se ven todos sin deslizar y se aprovecha el espacio de la pantalla
             Text(
                 text = "Seleccione el acceso a consultar:",
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            LazyRow(
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Dimens.espacioChico)
-            ) {
-                items(uiState.accesosDisponibles) { acceso ->
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.espacioChico)) {
+                uiState.accesosDisponibles.forEach { acceso ->
                     val esSeleccionado = uiState.accesoSeleccionado?.id == acceso.id
                     FilterChip(
                         selected = esSeleccionado,
                         onClick = { viewModel.seleccionarAcceso(acceso) },
-                        label = { Text("${acceso.codigo}: ${acceso.nombre}") }
+                        label = {
+                            Text(
+                                if (acceso.id == 0) acceso.nombre else "${acceso.codigo}: ${acceso.nombre}",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
                     )
                 }
+            }
+
+            // Mensaje rojo si se tocó "Consultar" sin elegir acceso
+            uiState.errorMessage?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -68,9 +74,8 @@ fun DivisionScreen(
             Boton(
                 texto = "Consultar Indicadores",
                 onClick = {
-                    if (uiState.accesoSeleccionado != null) {
-                        onConsultarClicked()
-                    }
+                    // La validación la hace el ViewModel: devuelve el acceso elegido o deja el error
+                    viewModel.validarSeleccion()?.let { acceso -> onConsultarClicked(acceso.id) }
                 },
                 modifier = Modifier.fillMaxWidth()
             )

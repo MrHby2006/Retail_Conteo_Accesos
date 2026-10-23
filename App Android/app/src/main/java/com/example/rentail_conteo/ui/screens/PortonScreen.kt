@@ -43,10 +43,14 @@ import com.example.rentail_conteo.viewmodel.PortonViewModel
 fun PortonScreen(
     observador: Usuario,
     onCerrarSesion: () -> Unit,
+    onVolver: () -> Unit,          // vuelve a la elección Puerta / Caja
     viewModel: PortonViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Al entrar: se busca el turno de hoy para dejar su puerta elegida
+    LaunchedEffect(observador.id) { viewModel.cargarTurno(observador.id) }
 
     // Cuando el ViewModel deja un mensaje, se muestra abajo y se avisa que ya se mostró
     LaunchedEffect(uiState.mensaje) {
@@ -57,7 +61,9 @@ fun PortonScreen(
     }
 
     Scaffold(
-        topBar = { BarraSuperior(titulo = "Puerta · ${observador.primerNombre()}", onCerrarSesion = onCerrarSesion) },
+        topBar = {
+            BarraSuperior(titulo = "Puerta · ${observador.primerNombre()}", onCerrarSesion = onCerrarSesion, onVolver = onVolver)
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
@@ -68,6 +74,11 @@ fun PortonScreen(
                 .padding(Dimens.espacioPantalla),
             verticalArrangement = Arrangement.spacedBy(Dimens.espacioMedio)
         ) {
+            Text(
+                "Tu turno de hoy: ${uiState.turnoHoy ?: "sin turno asignado"}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
             SeleccionChips(
                 titulo = "¿En qué acceso estás?",
                 opciones = uiState.accesos,
@@ -114,6 +125,14 @@ fun PortonScreen(
                 onSeleccionar = viewModel::onColorElegido,
                 textoDe = { it },
                 error = uiState.errorColor
+            )
+            SeleccionChips(
+                titulo = "Color de la ropa (parte de abajo)",
+                opciones = Opciones.coloresRopa,
+                seleccionada = uiState.colorRopaAbajo,
+                onSeleccionar = viewModel::onColorAbajoElegido,
+                textoDe = { it },
+                error = uiState.errorColorAbajo
             )
 
             // Componentes de Harol

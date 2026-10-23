@@ -10,15 +10,18 @@ data class PersonaIngreso(
     val fechaHora: String,          // "2026-10-22 10:15"
     val rangoEtario: String,
     val altura: String,
-    val colorRopa: String,
+    val colorRopa: String,          // parte de arriba
+    val colorRopaAbajo: String,     // parte de abajo
     val acompanado: Boolean,
     val detalle: String = "",       // opcional: algo que ayude a reconocerla ("mochila roja")
     val compro: Boolean = false
 ) {
-    // Lo que se muestra en la tarjeta del cajero: "Adulto (26-40) · Altura media · Ropa azul · Acompañado"
+    // Lo que se muestra en la tarjeta del cajero:
+    // "Adulto (26-40) · Altura media · Arriba azul, abajo negro · Acompañado"
     fun resumen(): String {
         val compania = if (acompanado) "Acompañado" else "Solo"
-        return "$rangoEtario · Altura ${altura.lowercase()} · Ropa ${colorRopa.lowercase()} · $compania"
+        return "$rangoEtario · Altura ${altura.lowercase()} · " +
+                "Arriba ${colorRopa.lowercase()}, abajo ${colorRopaAbajo.lowercase()} · $compania"
     }
 }
 

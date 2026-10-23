@@ -7,7 +7,6 @@ import android.util.Patterns
 import androidx.lifecycle.AndroidViewModel
 import com.example.rentail_conteo.data.ConvertidorImagen
 import com.example.rentail_conteo.data.RinconSurDbHelper
-import com.example.rentail_conteo.model.AccesoItem
 import com.example.rentail_conteo.model.PersonaIngreso
 import com.example.rentail_conteo.model.RegistrosClientesUIState
 import com.example.rentail_conteo.util.Fechas
@@ -23,7 +22,7 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
 
     private val db = RinconSurDbHelper.obtener(application)
 
-    private val _uiState = MutableStateFlow(RegistrosClientesUIState(accesos = db.listarAccesos()))
+    private val _uiState = MutableStateFlow(RegistrosClientesUIState())
     val uiState: StateFlow<RegistrosClientesUIState> = _uiState.asStateFlow()
 
     init {
@@ -33,11 +32,6 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
     // ----------------------------- BUSCAR -----------------------------
 
     // Tocar un filtro ya elegido lo QUITA (vuelve a null); tocar otro lo cambia.
-    fun onFiltroAcceso(acceso: AccesoItem) {
-        _uiState.update { it.copy(filtroAcceso = if (it.filtroAcceso == acceso) null else acceso) }
-        buscar()
-    }
-
     fun onFiltroRango(valor: String) {
         _uiState.update { it.copy(filtroRango = if (it.filtroRango == valor) null else valor) }
         buscar()
@@ -48,12 +42,17 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
         buscar()
     }
 
+    fun onFiltroColorAbajo(valor: String) {
+        _uiState.update { it.copy(filtroColorAbajo = if (it.filtroColorAbajo == valor) null else valor) }
+        buscar()
+    }
+
     private fun buscar() {
         val estado = _uiState.value
         val candidatos = db.buscarCandidatos(
-            idAcceso = estado.filtroAcceso?.id?.toLong(),
             rangoEtario = estado.filtroRango,
-            colorRopa = estado.filtroColor
+            colorArriba = estado.filtroColor,
+            colorAbajo = estado.filtroColorAbajo
         )
         _uiState.update { it.copy(candidatos = candidatos) }
     }
