@@ -6,8 +6,11 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.example.rentail_conteo.model.AccesoItem
+import com.example.rentail_conteo.model.FilaIndicador
 import com.example.rentail_conteo.model.PersonaIngreso
+import com.example.rentail_conteo.model.Turno
 import com.example.rentail_conteo.model.Usuario
+import com.example.rentail_conteo.util.Fechas
 
 // =====================================================================
 //  RinconSurDbHelper.kt  —  Base de datos SQLite de la app (rinconsur.db)
@@ -17,6 +20,8 @@ import com.example.rentail_conteo.model.Usuario
 //                  │                 1
 //                  │                 │
 //                  └──────1───N   compras   (una compra por persona)
+//
+//   usuarios 1───N turnos   (el SUPERVISOR asigna a cada trabajador una puerta o la caja)
 //
 //   - personas_ingreso: lo que anota el OBSERVADOR en la puerta.
 //   - compras: lo que registra el CAJERO cuando encuentra a esa persona (con la foto de la boleta).
@@ -29,7 +34,7 @@ class RinconSurDbHelper(context: Context) :
 
     companion object {
         private const val NOMBRE_BD = "rinconsur.db"
-        private const val VERSION_BD = 1
+        private const val VERSION_BD = 4      // 2 = turnos y compras de ejemplo; 3 = 3 trabajadores más; 4 = color de abajo
 
         // Singleton: todos los ViewModels usan el MISMO helper (una sola conexión)
         @Volatile private var instancia: RinconSurDbHelper? = null
@@ -72,7 +77,8 @@ class RinconSurDbHelper(context: Context) :
                     "fecha_hora TEXT NOT NULL, " +
                     "rango_etario TEXT NOT NULL, " +
                     "altura TEXT NOT NULL, " +
-                    "color_ropa TEXT NOT NULL, " +
+                    "color_ropa TEXT NOT NULL, " +          // parte de arriba
+                    "color_ropa_abajo TEXT NOT NULL, " +    // parte de abajo (pantalón, falda...)
                     "acompanado INTEGER NOT NULL DEFAULT 0, " +
                     "detalle TEXT NOT NULL DEFAULT '', " +
                     "compro INTEGER NOT NULL DEFAULT 0)"
@@ -87,6 +93,18 @@ class RinconSurDbHelper(context: Context) :
                     "nombre_cliente TEXT, " +               // opcional (NULL si no lo quiso dar)
                     "correo_cliente TEXT, " +               // opcional
                     "ruta_boleta TEXT NOT NULL)"            // dónde quedó guardada la foto
+
+        // puesto = 'A1'..'A4' (puerta) o 'CAJA'. franja = 'Mañana' o 'Tarde'.
+        // UNIQUE: un trabajador no puede tener dos turnos en la misma fecha y franja.
+        private const val SQL_CREAR_TURNOS =
+            "CREATE TABLE turnos (" +
+                    "id_turno INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "id_usuario INTEGER NOT NULL REFERENCES usuarios(id_usuario), " +
+                    "id_supervisor INTEGER NOT NULL REFERENCES usuarios(id_usuario), " +
+                    "fecha TEXT NOT NULL, " +               // "2026-10-23"
+                    "franja TEXT NOT NULL, " +
+                    "puesto TEXT NOT NULL, " +
+                    "UNIQUE (id_usuario, fecha, franja))"
 
         // ---------------------------- DATOS DE EJEMPLO ----------------------------
         // Contraseña de prueba para todos: 123456
@@ -103,7 +121,10 @@ class RinconSurDbHelper(context: Context) :
                     "('C-04', 'Matías Contreras Vidal', '164430197', '123456', 'Supervisor de piso (tarde)', 2), " +
                     "('C-05', 'Tamara Rojas Espinoza', '198763454', '123456', 'Vendedora, Vestuario Mujer', 3), " +
                     "('C-06', 'Felipe Ibarra Soto', '201456789', '123456', 'Vendedor, Hogar y Deco', 3), " +
-                    "('C-07', 'Javiera Morales Cáceres', '183229044', '123456', 'Cajera, Cajas Centrales', 4)"
+                    "('C-07', 'Javiera Morales Cáceres', '183229044', '123456', 'Cajera, Cajas Centrales', 4), " +
+                    "('C-08', 'Ignacio Navarro Pérez', '178902342', '123456', 'Vendedor, Deportes', 3), " +
+                    "('C-09', 'Valentina Reyes Lagos', '203451180', '123456', 'Cajera, Cajas Centrales', 4), " +
+                    "('C-10', 'Sebastián Castillo Mora', '167894550', '123456', 'Vendedor, Electro', 3)"
 
         private const val SQL_PRECARGAR_ACCESOS =
             "INSERT INTO accesos (id_acceso, codigo, nombre, ubicacion) VALUES " +
@@ -115,15 +136,36 @@ class RinconSurDbHelper(context: Context) :
         // Algunas personas ya anotadas, para que el cajero tenga a quién buscar en la demo
         // (observadores: id 5 = Tamara, id 6 = Felipe)
         private const val SQL_PRECARGAR_PERSONAS =
-            "INSERT INTO personas_ingreso (id_acceso, id_observador, fecha_hora, rango_etario, altura, color_ropa, acompanado, detalle, compro) VALUES " +
-                    "(4, 5, '2026-10-22 10:05', 'Adulto (26-40)', 'Media', 'Azul', 0, 'Mochila negra', 0), " +
-                    "(4, 5, '2026-10-22 10:07', 'Joven (13-25)', 'Alta', 'Negro', 1, '', 0), " +
-                    "(4, 5, '2026-10-22 10:12', 'Adulto (41-60)', 'Baja', 'Rojo', 0, 'Bolsa de la tienda vecina', 0), " +
-                    "(1, 6, '2026-10-22 10:20', 'Mayor (60+)', 'Media', 'Gris', 1, 'Usa bastón', 0), " +
-                    "(1, 6, '2026-10-22 10:26', 'Adulto (26-40)', 'Alta', 'Blanco', 0, '', 0), " +
-                    "(1, 6, '2026-10-22 10:31', 'Joven (13-25)', 'Media', 'Verde', 1, 'Gorro', 0), " +
-                    "(2, 6, '2026-10-22 13:02', 'Adulto (26-40)', 'Media', 'Azul', 1, 'Coche de bebé', 0), " +
-                    "(2, 6, '2026-10-22 13:10', 'Adulto (41-60)', 'Alta', 'Negro', 0, '', 0)"
+            "INSERT INTO personas_ingreso (id_acceso, id_observador, fecha_hora, rango_etario, altura, color_ropa, color_ropa_abajo, acompanado, detalle, compro) VALUES " +
+                    "(4, 5, '2026-10-22 10:05', 'Adulto (26-40)', 'Media', 'Azul', 'Negro', 0, 'Mochila negra', 0), " +
+                    "(4, 5, '2026-10-22 10:07', 'Joven (13-25)', 'Alta', 'Negro', 'Azul', 1, '', 0), " +
+                    "(4, 5, '2026-10-22 10:12', 'Adulto (41-60)', 'Baja', 'Rojo', 'Gris', 0, 'Bolsa de la tienda vecina', 0), " +
+                    "(1, 6, '2026-10-22 10:20', 'Mayor (60+)', 'Media', 'Gris', 'Café', 1, 'Usa bastón', 0), " +
+                    "(1, 6, '2026-10-22 10:26', 'Adulto (26-40)', 'Alta', 'Blanco', 'Azul', 0, '', 0), " +
+                    "(1, 6, '2026-10-22 10:31', 'Joven (13-25)', 'Media', 'Verde', 'Negro', 1, 'Gorro', 0), " +
+                    "(2, 6, '2026-10-22 13:02', 'Adulto (26-40)', 'Media', 'Azul', 'Negro', 1, 'Coche de bebé', 0), " +
+                    "(2, 6, '2026-10-22 13:10', 'Adulto (41-60)', 'Alta', 'Negro', 'Gris', 0, '', 0), " +
+                    // Desde aquí (ids 9 a 16) son personas que SÍ compraron, para que los indicadores tengan datos
+                    "(1, 6, '2026-10-22 11:00', 'Adulto (26-40)', 'Media', 'Negro', 'Azul', 1, '', 1), " +
+                    "(1, 6, '2026-10-22 11:04', 'Adulto (41-60)', 'Baja', 'Azul', 'Negro', 1, '', 1), " +
+                    "(1, 6, '2026-10-22 11:15', 'Mayor (60+)', 'Baja', 'Café', 'Gris', 1, '', 1), " +
+                    "(2, 6, '2026-10-22 13:20', 'Adulto (26-40)', 'Alta', 'Blanco', 'Azul', 1, '', 1), " +
+                    "(2, 6, '2026-10-22 13:35', 'Adulto (41-60)', 'Media', 'Gris', 'Negro', 0, '', 1), " +
+                    "(3, 5, '2026-10-22 16:02', 'Adulto (26-40)', 'Media', 'Rojo', 'Café', 1, '', 1), " +
+                    "(3, 5, '2026-10-22 16:10', 'Adulto (41-60)', 'Alta', 'Negro', 'Azul', 1, '', 1), " +
+                    "(4, 5, '2026-10-22 17:45', 'Adulto (26-40)', 'Media', 'Azul', 'Negro', 0, '', 1)"
+
+        // Compras de ejemplo de esas 8 personas (cajera id 7 = Javiera). Sin foto: son datos de demo.
+        private const val SQL_PRECARGAR_COMPRAS =
+            "INSERT INTO compras (id_persona, id_cajero, fecha_hora, nombre_cliente, correo_cliente, ruta_boleta) VALUES " +
+                    "(9, 7, '2026-10-22 11:20', NULL, NULL, ''), " +
+                    "(10, 7, '2026-10-22 11:31', 'Cliente Demo Uno', NULL, ''), " +
+                    "(11, 7, '2026-10-22 11:40', NULL, NULL, ''), " +
+                    "(12, 7, '2026-10-22 13:50', NULL, 'demo2@correo.cl', ''), " +
+                    "(13, 7, '2026-10-22 13:58', NULL, NULL, ''), " +
+                    "(14, 7, '2026-10-22 16:30', NULL, NULL, ''), " +
+                    "(15, 7, '2026-10-22 16:41', 'Cliente Demo Tres', NULL, ''), " +
+                    "(16, 7, '2026-10-22 18:05', NULL, NULL, '')"
     }
 
     // SQLite trae las claves foráneas apagadas: se encienden cada vez que se abre la conexión
@@ -139,15 +181,26 @@ class RinconSurDbHelper(context: Context) :
         db.execSQL(SQL_CREAR_ACCESOS)
         db.execSQL(SQL_CREAR_PERSONAS)
         db.execSQL(SQL_CREAR_COMPRAS)
+        db.execSQL(SQL_CREAR_TURNOS)
 
         db.execSQL(SQL_PRECARGAR_ROLES)
         db.execSQL(SQL_PRECARGAR_USUARIOS)
         db.execSQL(SQL_PRECARGAR_ACCESOS)
         db.execSQL(SQL_PRECARGAR_PERSONAS)
+        db.execSQL(SQL_PRECARGAR_COMPRAS)
+
+        // Dos turnos para HOY (la fecha se calcula al crear la BD): Tamara en A4 y Javiera en caja
+        val hoy = Fechas.hoy()
+        db.execSQL(
+            "INSERT INTO turnos (id_usuario, id_supervisor, fecha, franja, puesto) VALUES " +
+                    "(5, 3, ?, 'Mañana', 'A4'), (7, 3, ?, 'Mañana', 'CAJA')",
+            arrayOf(hoy, hoy)
+        )
     }
 
     // Si se sube VERSION_BD: se borra todo y se vuelve a crear. Primero las tablas "hijas".
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        db.execSQL("DROP TABLE IF EXISTS turnos")
         db.execSQL("DROP TABLE IF EXISTS compras")
         db.execSQL("DROP TABLE IF EXISTS personas_ingreso")
         db.execSQL("DROP TABLE IF EXISTS accesos")
@@ -208,6 +261,7 @@ class RinconSurDbHelper(context: Context) :
             put("rango_etario", persona.rangoEtario)
             put("altura", persona.altura)
             put("color_ropa", persona.colorRopa)
+            put("color_ropa_abajo", persona.colorRopaAbajo)
             put("acompanado", if (persona.acompanado) 1 else 0)
             put("detalle", persona.detalle)
         }
@@ -230,22 +284,23 @@ class RinconSurDbHelper(context: Context) :
 
     // Personas que entraron y todavía NO tienen compra, con los filtros que eligió el cajero.
     // Cada filtro es opcional: solo se agrega al WHERE si viene con valor.
-    fun buscarCandidatos(idAcceso: Long?, rangoEtario: String?, colorRopa: String?): List<PersonaIngreso> {
+    // (No se filtra por acceso: desde la caja no se ve por dónde entró la persona.)
+    fun buscarCandidatos(rangoEtario: String?, colorArriba: String?, colorAbajo: String?): List<PersonaIngreso> {
         var sql = "SELECT p.*, a.codigo AS codigo_acceso FROM personas_ingreso p " +
                 "INNER JOIN accesos a ON p.id_acceso = a.id_acceso " +
                 "WHERE p.compro = 0"
         val args = mutableListOf<String>()
-        if (idAcceso != null) {
-            sql += " AND p.id_acceso = ?"
-            args.add(idAcceso.toString())
-        }
         if (rangoEtario != null) {
             sql += " AND p.rango_etario = ?"
             args.add(rangoEtario)
         }
-        if (colorRopa != null) {
+        if (colorArriba != null) {
             sql += " AND p.color_ropa = ?"
-            args.add(colorRopa)
+            args.add(colorArriba)
+        }
+        if (colorAbajo != null) {
+            sql += " AND p.color_ropa_abajo = ?"
+            args.add(colorAbajo)
         }
         sql += " ORDER BY p.fecha_hora DESC"       // los que entraron más recién, primero
 
@@ -287,6 +342,145 @@ class RinconSurDbHelper(context: Context) :
         }
     }
 
+    // ---------------------------- TURNOS (supervisor) ----------------------------
+
+    // Trabajadores a los que se les puede asignar turno: observadores y cajeros activos, por nombre
+    fun listarTrabajadores(): List<Usuario> {
+        val lista = mutableListOf<Usuario>()
+        readableDatabase.rawQuery(
+            "SELECT * FROM usuarios WHERE activo = 1 AND id_rol IN (3, 4) ORDER BY nombre", null
+        ).use { cursor ->
+            while (cursor.moveToNext()) lista.add(leerUsuario(cursor))
+        }
+        return lista
+    }
+
+    // Turnos de un día, con el nombre del trabajador (JOIN con usuarios)
+    fun listarTurnos(fecha: String): List<Turno> {
+        val lista = mutableListOf<Turno>()
+        readableDatabase.rawQuery(
+            "SELECT t.*, u.nombre AS nombre_trabajador FROM turnos t " +
+                    "INNER JOIN usuarios u ON t.id_usuario = u.id_usuario " +
+                    "WHERE t.fecha = ? ORDER BY t.franja, t.puesto",      // 'Mañana' antes que 'Tarde'
+            arrayOf(fecha)
+        ).use { cursor ->
+            while (cursor.moveToNext()) lista.add(leerTurno(cursor))
+        }
+        return lista
+    }
+
+    // -1 si falló (por ejemplo, si choca con el UNIQUE: el trabajador ya tiene turno en esa franja)
+    fun insertarTurno(idUsuario: Long, idSupervisor: Long, fecha: String, franja: String, puesto: String): Long {
+        val valores = ContentValues().apply {
+            put("id_usuario", idUsuario)
+            put("id_supervisor", idSupervisor)
+            put("fecha", fecha)
+            put("franja", franja)
+            put("puesto", puesto)
+        }
+        return writableDatabase.insert("turnos", null, valores)
+    }
+
+    fun eliminarTurno(idTurno: Long) {
+        writableDatabase.delete("turnos", "id_turno = ?", arrayOf(idTurno.toString()))
+    }
+
+    // El primer turno de HOY de un trabajador (para que el observador parta con su puerta ya elegida)
+    fun turnoDeHoy(idUsuario: Long, hoy: String): Turno? {
+        var turno: Turno? = null
+        readableDatabase.rawQuery(
+            "SELECT t.*, u.nombre AS nombre_trabajador FROM turnos t " +
+                    "INNER JOIN usuarios u ON t.id_usuario = u.id_usuario " +
+                    "WHERE t.id_usuario = ? AND t.fecha = ? ORDER BY t.franja",
+            arrayOf(idUsuario.toString(), hoy)
+        ).use { cursor ->
+            if (cursor.moveToFirst()) turno = leerTurno(cursor)
+        }
+        return turno
+    }
+
+    // TODOS los turnos de hoy de un trabajador (puede tener mañana y tarde): a cada uno se le programa su aviso
+    fun turnosDeHoy(idUsuario: Long, hoy: String): List<Turno> {
+        val lista = mutableListOf<Turno>()
+        readableDatabase.rawQuery(
+            "SELECT t.*, u.nombre AS nombre_trabajador FROM turnos t " +
+                    "INNER JOIN usuarios u ON t.id_usuario = u.id_usuario " +
+                    "WHERE t.id_usuario = ? AND t.fecha = ? ORDER BY t.franja",
+            arrayOf(idUsuario.toString(), hoy)
+        ).use { cursor ->
+            while (cursor.moveToNext()) lista.add(leerTurno(cursor))
+        }
+        return lista
+    }
+
+    // Un turno por su id (null si el supervisor lo quitó)
+    fun buscarTurno(idTurno: Long): Turno? {
+        var turno: Turno? = null
+        readableDatabase.rawQuery(
+            "SELECT t.*, u.nombre AS nombre_trabajador FROM turnos t " +
+                    "INNER JOIN usuarios u ON t.id_usuario = u.id_usuario WHERE t.id_turno = ?",
+            arrayOf(idTurno.toString())
+        ).use { cursor ->
+            if (cursor.moveToFirst()) turno = leerTurno(cursor)
+        }
+        return turno
+    }
+
+    // Quién toma el mismo puesto en la franja siguiente (null si nadie: el puesto quedaría sin cubrir)
+    fun reemplazo(puesto: String, fecha: String, franja: String): Turno? {
+        var turno: Turno? = null
+        readableDatabase.rawQuery(
+            "SELECT t.*, u.nombre AS nombre_trabajador FROM turnos t " +
+                    "INNER JOIN usuarios u ON t.id_usuario = u.id_usuario " +
+                    "WHERE t.puesto = ? AND t.fecha = ? AND t.franja = ?",
+            arrayOf(puesto, fecha, franja)
+        ).use { cursor ->
+            if (cursor.moveToFirst()) turno = leerTurno(cursor)
+        }
+        return turno
+    }
+
+    // ---------------------------- INDICADORES (jefatura) ----------------------------
+
+    // Cuenta ingresos y compradores agrupados por un rasgo. idAcceso null = todos los accesos;
+    // fechaPrefijo null = todo el registro. SUM(compro) sirve para contar porque compro vale 0 o 1.
+    // "columna" nunca viene de lo que escribe el usuario: solo se llama desde las dos funciones de abajo.
+    private fun agruparPor(columna: String, idAcceso: Long?, fechaPrefijo: String?): List<FilaIndicador> {
+        var sql = "SELECT $columna AS grupo, COUNT(*) AS ingresos, SUM(compro) AS compradores " +
+                "FROM personas_ingreso WHERE 1 = 1"          // 1 = 1: para poder ir sumando "AND ..."
+        val args = mutableListOf<String>()
+        if (idAcceso != null) {
+            sql += " AND id_acceso = ?"
+            args.add(idAcceso.toString())
+        }
+        if (fechaPrefijo != null) {
+            sql += " AND fecha_hora LIKE ?"
+            args.add("$fechaPrefijo%")
+        }
+        sql += " GROUP BY $columna"
+
+        val lista = mutableListOf<FilaIndicador>()
+        readableDatabase.rawQuery(sql, args.toTypedArray()).use { cursor ->
+            while (cursor.moveToNext()) {
+                lista.add(
+                    FilaIndicador(
+                        grupo = cursor.getString(cursor.getColumnIndexOrThrow("grupo")),
+                        ingresos = cursor.getInt(cursor.getColumnIndexOrThrow("ingresos")),
+                        compradores = cursor.getInt(cursor.getColumnIndexOrThrow("compradores"))
+                    )
+                )
+            }
+        }
+        return lista
+    }
+
+    fun indicadoresPorRango(idAcceso: Long?, fechaPrefijo: String?) =
+        agruparPor("rango_etario", idAcceso, fechaPrefijo)
+
+    // Aquí "grupo" llega como "0" (solo) o "1" (acompañado)
+    fun indicadoresPorCompania(idAcceso: Long?, fechaPrefijo: String?) =
+        agruparPor("acompanado", idAcceso, fechaPrefijo)
+
     // ---------------------------- LEER FILAS ----------------------------
 
     private fun leerUsuario(c: Cursor) = Usuario(
@@ -298,6 +492,15 @@ class RinconSurDbHelper(context: Context) :
         rolId = c.getLong(c.getColumnIndexOrThrow("id_rol"))
     )
 
+    private fun leerTurno(c: Cursor) = Turno(
+        id = c.getLong(c.getColumnIndexOrThrow("id_turno")),
+        idUsuario = c.getLong(c.getColumnIndexOrThrow("id_usuario")),
+        nombreTrabajador = c.getString(c.getColumnIndexOrThrow("nombre_trabajador")),
+        fecha = c.getString(c.getColumnIndexOrThrow("fecha")),
+        franja = c.getString(c.getColumnIndexOrThrow("franja")),
+        puesto = c.getString(c.getColumnIndexOrThrow("puesto"))
+    )
+
     private fun leerPersona(c: Cursor) = PersonaIngreso(
         id = c.getLong(c.getColumnIndexOrThrow("id_persona")),
         accesoId = c.getLong(c.getColumnIndexOrThrow("id_acceso")),
@@ -307,6 +510,7 @@ class RinconSurDbHelper(context: Context) :
         rangoEtario = c.getString(c.getColumnIndexOrThrow("rango_etario")),
         altura = c.getString(c.getColumnIndexOrThrow("altura")),
         colorRopa = c.getString(c.getColumnIndexOrThrow("color_ropa")),
+        colorRopaAbajo = c.getString(c.getColumnIndexOrThrow("color_ropa_abajo")),
         acompanado = c.getInt(c.getColumnIndexOrThrow("acompanado")) == 1,
         detalle = c.getString(c.getColumnIndexOrThrow("detalle")),
         compro = c.getInt(c.getColumnIndexOrThrow("compro")) == 1
