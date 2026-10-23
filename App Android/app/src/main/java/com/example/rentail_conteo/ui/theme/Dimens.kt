@@ -14,9 +14,6 @@ object Dimens {
     val bordeBoton = 2.dp
     val elevacionBoton = 4.dp
 
-    val bordeAvatar = 4.dp
-    val tamanoAvatar = 20.dp
-
     val radioCampo = 12.dp
 
     val tamanoIcono = 20.dp
