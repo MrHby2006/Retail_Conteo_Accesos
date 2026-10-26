@@ -35,10 +35,6 @@ fun DivisionScreen(
                 .padding(Dimens.espacioPantalla),
             verticalArrangement = Arrangement.spacedBy(Dimens.espacioGrande)
         ) {
-            // El período (hoy o todo el registro) se elige en la pantalla de indicadores
-
-            // Selector de Accesos (Todos, A1 a A4), uno debajo del otro y a lo ancho:
-            // se ven todos sin deslizar y se aprovecha el espacio de la pantalla
             Text(
                 text = "Seleccione el acceso a consultar:",
                 style = MaterialTheme.typography.bodyMedium
@@ -63,18 +59,15 @@ fun DivisionScreen(
                 }
             }
 
-            // Mensaje rojo si se tocó "Consultar" sin elegir acceso
             uiState.errorMessage?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Botón principal utilizando tu componente reutilizable Boton.kt
             Boton(
                 texto = "Consultar Indicadores",
                 onClick = {
-                    // La validación la hace el ViewModel: devuelve el acceso elegido o deja el error
                     viewModel.validarSeleccion()?.let { acceso -> onConsultarClicked(acceso.id) }
                 },
                 modifier = Modifier.fillMaxWidth()

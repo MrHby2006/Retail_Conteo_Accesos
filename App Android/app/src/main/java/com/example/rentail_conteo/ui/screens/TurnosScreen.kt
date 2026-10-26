@@ -39,7 +39,6 @@ import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.util.Fechas
 import com.example.rentail_conteo.viewmodel.TurnosViewModel
 
-// Pantalla del SUPERVISOR DE PISO: arriba asigna un turno, abajo ve los turnos del día elegido.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TurnosScreen(
@@ -50,8 +49,6 @@ fun TurnosScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // CALENDARIO (DatePicker de Material 3). Trabaja con milisegundos en UTC, por eso se convierte con Fechas.
-    // SelectableDates: los días anteriores a hoy salen apagados (no se asignan turnos al pasado).
     val hoyMillis = remember { Fechas.aMillisUtc(Fechas.hoy()) }
     val calendario = rememberDatePickerState(
         initialSelectedDateMillis = Fechas.aMillisUtc(uiState.diaElegido),
@@ -59,7 +56,6 @@ fun TurnosScreen(
             override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis >= hoyMillis
         }
     )
-    // Cada vez que se toca otro día en el calendario, se le avisa al ViewModel
     LaunchedEffect(calendario.selectedDateMillis) {
         calendario.selectedDateMillis?.let { viewModel.onDiaElegido(Fechas.desdeMillisUtc(it)) }
     }
@@ -86,9 +82,9 @@ fun TurnosScreen(
             Text("Día", style = MaterialTheme.typography.titleSmall)
             DatePicker(
                 state = calendario,
-                title = null,              // sin el título "Select date"
-                headline = null,           // sin la fecha grande arriba (ya se ve marcada en el calendario)
-                showModeToggle = false     // sin el botón para escribir la fecha a mano
+                title = null,
+                headline = null,
+                showModeToggle = false
             )
 
             SeleccionChips(

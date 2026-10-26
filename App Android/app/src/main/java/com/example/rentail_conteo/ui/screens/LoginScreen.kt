@@ -28,8 +28,6 @@ import com.example.rentail_conteo.ui.components.Boton
 import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.viewmodel.LoginViewModel
 
-// Pantalla de ingreso. Solo DIBUJA el estado y AVISA al ViewModel.
-// No recibe el NavController: avisa con onIngreso(usuario) y la navegación decide a dónde ir según su rol.
 @Composable
 fun LoginScreen(
     onIngreso: (Usuario) -> Unit,
@@ -51,7 +49,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(Dimens.espacioGrande))
 
-            // Campo RUT: ícono + borde rojo y mensaje si hay error
             OutlinedTextField(
                 value = uiState.rut,
                 onValueChange = { viewModel.onRutCambia(it) },
@@ -63,7 +60,6 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Campo contraseña: se ve con puntitos
             OutlinedTextField(
                 value = uiState.contrasena,
                 onValueChange = { viewModel.onContrasenaCambia(it) },
@@ -79,8 +75,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(Dimens.espacioMedio))
 
-            // Botón de Harol (Boton.kt).
-            // ?.let = "si NO es null, ejecuta": solo avisa si el ViewModel encontró al colaborador
             Boton(
                 texto = "Ingresar",
                 onClick = { viewModel.onIngresar()?.let(onIngreso) },

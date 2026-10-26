@@ -48,8 +48,6 @@ import com.example.rentail_conteo.viewmodel.IndicadoresViewModel
 private const val PERIODO_TODO = "Todo el registro"
 private const val PERIODO_HOY = "Hoy"
 
-// Pantalla de la JEFATURA: cuántos entraron, cuántos compraron y QUÉ PÚBLICO compra y cuál no.
-// Los dos gráficos se dibujan a mano con Canvas y se animan con Animatable (de 0 a 1).
 @Composable
 fun IndicadoresScreen(
     idAcceso: Int,
@@ -59,10 +57,8 @@ fun IndicadoresScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Se carga una vez con el acceso que se eligió en la pantalla anterior
     LaunchedEffect(idAcceso) { viewModel.cargar(idAcceso) }
 
-    // ANIMACIÓN: cada vez que cambian los datos, los gráficos vuelven a "crecer" desde 0
     val progreso = remember { Animatable(0f) }
     LaunchedEffect(uiState.porRango) {
         progreso.snapTo(0f)
@@ -103,7 +99,6 @@ fun IndicadoresScreen(
                 return@Column
             }
 
-            // Las 3 cifras principales
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.espacioChico)) {
                 TarjetaCifra("Entraron", uiState.ingresos, Modifier.weight(1f))
                 TarjetaCifra("Compraron", uiState.compradores, Modifier.weight(1f))
@@ -134,7 +129,6 @@ fun IndicadoresScreen(
     }
 }
 
-// Número grande que "cuenta" hasta su valor (animateIntAsState)
 @Composable
 private fun TarjetaCifra(titulo: String, valor: Int, modifier: Modifier = Modifier) {
     val animado by animateIntAsState(targetValue = valor, animationSpec = tween(900), label = titulo)
@@ -151,8 +145,6 @@ private fun TarjetaCifra(titulo: String, valor: Int, modifier: Modifier = Modifi
     }
 }
 
-// Gráfico de anillo: el arco de color es el % de los que entraron que compraron.
-// drawArc dibuja un pedazo de círculo: 360° = el círculo completo.
 @Composable
 private fun GraficoConversion(conversion: Int, progreso: Float) {
     val colorFondo = GrisDeshabilitado
@@ -165,13 +157,11 @@ private fun GraficoConversion(conversion: Int, progreso: Float) {
         Canvas(modifier = Modifier.size(160.dp)) {
             val grosor = 22.dp.toPx()
             val estilo = Stroke(width = grosor, cap = StrokeCap.Round)
-            // el arco se dibuja dentro de un cuadrado; se achica medio grosor para que no se corte el borde
             val tamano = Size(size.width - grosor, size.height - grosor)
             val esquina = Offset(grosor / 2, grosor / 2)
 
             drawArc(colorFondo, startAngle = 0f, sweepAngle = 360f, useCenter = false,
                 topLeft = esquina, size = tamano, style = estilo)
-            // -90° = parte arriba (las 12 del reloj) y avanza en el sentido del reloj
             drawArc(colorCompra, startAngle = -90f, sweepAngle = 360f * conversion / 100f * progreso,
                 useCenter = false, topLeft = esquina, size = tamano, style = estilo)
         }
@@ -183,8 +173,6 @@ private fun GraficoConversion(conversion: Int, progreso: Float) {
     }
 }
 
-// Una barra por rango: el largo total = cuántos entraron; la parte de color = cuántos compraron.
-// Todas se miden contra el rango con más ingresos (maximo), así se pueden comparar entre sí.
 @Composable
 private fun BarraRango(fila: FilaIndicador, maximo: Int, progreso: Float) {
     val colorIngresos = GrisDeshabilitado

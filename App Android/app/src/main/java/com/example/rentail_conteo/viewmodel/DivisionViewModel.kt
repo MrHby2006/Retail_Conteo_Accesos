@@ -10,12 +10,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-// AndroidViewModel: necesita el Context para leer los accesos desde la BD
 class DivisionViewModel(application: Application) : AndroidViewModel(application) {
-
     private val db = RinconSurDbHelper.obtener(application)
 
-    // Primera opción "Todos los accesos" (id 0: no existe en la BD, significa "sin filtro de acceso")
     private val _uiState = MutableStateFlow(
         DivisionUIState(accesosDisponibles = listOf(AccesoItem(0, "", "Todos los accesos")) + db.listarAccesos())
     )
@@ -27,7 +24,6 @@ class DivisionViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    // Botón "Consultar Indicadores": devuelve el acceso elegido, o null y deja el mensaje de error
     fun validarSeleccion(): AccesoItem? {
         val acceso = _uiState.value.accesoSeleccionado
         if (acceso == null) {

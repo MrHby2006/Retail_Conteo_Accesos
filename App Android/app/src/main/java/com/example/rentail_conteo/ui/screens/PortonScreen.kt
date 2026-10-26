@@ -37,22 +37,18 @@ import com.example.rentail_conteo.ui.components.SeleccionChips
 import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.viewmodel.PortonViewModel
 
-// Pantalla del OBSERVADOR en la puerta: anota a cada persona que entra.
-// Todo se elige tocando opciones (sin escribir), para registrar rápido sin dejar de mirar la puerta.
 @Composable
 fun PortonScreen(
     observador: Usuario,
     onCerrarSesion: () -> Unit,
-    onVolver: () -> Unit,          // vuelve a la elección Puerta / Caja
+    onVolver: () -> Unit,
     viewModel: PortonViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Al entrar: se busca el turno de hoy para dejar su puerta elegida
     LaunchedEffect(observador.id) { viewModel.cargarTurno(observador.id) }
 
-    // Cuando el ViewModel deja un mensaje, se muestra abajo y se avisa que ya se mostró
     LaunchedEffect(uiState.mensaje) {
         uiState.mensaje?.let {
             snackbarHostState.showSnackbar(it)
@@ -88,7 +84,6 @@ fun PortonScreen(
                 error = uiState.errorAcceso
             )
 
-            // Contador de hoy. ANIMACIÓN: al cambiar el número, el nuevo entra desde abajo
             uiState.accesoElegido?.let { acceso ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Registrados hoy en ${acceso.codigo}: ", style = MaterialTheme.typography.bodyLarge)
@@ -135,7 +130,6 @@ fun PortonScreen(
                 error = uiState.errorColorAbajo
             )
 
-            // Componentes de Harol
             InterruptorConTexto(
                 texto = "¿Viene acompañado?",
                 activado = uiState.acompanado,

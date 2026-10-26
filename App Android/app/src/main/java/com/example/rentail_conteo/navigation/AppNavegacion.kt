@@ -22,32 +22,21 @@ import com.example.rentail_conteo.ui.screens.RegistrosClientesScreen
 import com.example.rentail_conteo.ui.screens.TurnosScreen
 import com.example.rentail_conteo.viewmodel.SesionViewModel
 
-// NavController = sabe en qué pantalla estamos y guarda el historial.
-// NavHost = dibuja la pantalla de la ruta actual.
-//
-//   Login ─┬─ Observador / Cajero ─▶ Eleccion ─┬─▶ Porton (puerta)
-//          │                                   └─▶ RegistrosClientes (caja)
-//          ├─ Supervisor ─▶ Turnos
-//          └─ Jefatura ───▶ Division ──(elige acceso)──▶ Indicadores/{idAcceso}
 @Composable
 fun AppNavegacion() {
     val navController = rememberNavController()
 
-    // Se crea UNA vez aquí: todas las pantallas saben quién inició sesión
     val sesionViewModel: SesionViewModel = viewModel()
     val usuario by sesionViewModel.usuarioActual.collectAsStateWithLifecycle()
 
-    // SharedPreferences: si había una sesión guardada, se parte directo en la pantalla de su rol
     val inicio = remember { rutaInicial(sesionViewModel.usuarioActual.value) }
 
     NavHost(navController = navController, startDestination = inicio) {
-
         composable(Ruta.Login.ruta) {
             LoginScreen(
                 onIngreso = { usuarioIngresado ->
                     sesionViewModel.iniciarSesion(usuarioIngresado)
                     navController.navigate(rutaInicial(usuarioIngresado)) {
-                        // Saca el login del historial: con "atrás" no se vuelve al login
                         popUpTo(Ruta.Login.ruta) { inclusive = true }
                     }
                 }
@@ -62,7 +51,6 @@ fun AppNavegacion() {
             )
         }
 
-        // navArgument: se declara que {idAcceso} es un número entero
         composable(
             route = Ruta.Indicadores.ruta,
             arguments = listOf(navArgument("idAcceso") { type = NavType.IntType })
@@ -83,7 +71,6 @@ fun AppNavegacion() {
         }
 
         composable(Ruta.Eleccion.ruta) {
-            // ?: return@composable = si no hay usuario (recién cerró sesión), no dibuja nada
             val actual = usuario ?: return@composable
             EleccionPantallaScreen(
                 trabajador = actual,
@@ -113,8 +100,6 @@ fun AppNavegacion() {
     }
 }
 
-// Cada perfil parte en su propia pantalla. Observadores y cajeros, por ahora, eligen ellos
-// entre puerta y caja (a futuro: según el turno que les asignó el supervisor).
 private fun rutaInicial(usuario: Usuario?): String = when (usuario?.rolId) {
     null -> Ruta.Login.ruta
     Rol.OBSERVADOR, Rol.CAJERO -> Ruta.Eleccion.ruta
@@ -122,7 +107,6 @@ private fun rutaInicial(usuario: Usuario?): String = when (usuario?.rolId) {
     else -> Ruta.Division.ruta
 }
 
-// Borra la sesión y vuelve al login sin dejar pantallas atrás (popUpTo(0) = vacía el historial)
 private fun cerrarSesion(sesion: SesionViewModel, navController: NavHostController) {
     sesion.cerrarSesion()
     navController.navigate(Ruta.Login.ruta) { popUpTo(0) }

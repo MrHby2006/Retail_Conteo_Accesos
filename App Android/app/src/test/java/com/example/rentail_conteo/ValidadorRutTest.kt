@@ -6,10 +6,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// Pruebas unitarias del validador de RUT (se ejecutan en el PC, sin emulador).
 class ValidadorRutTest {
-
-    // Los RUT de los colaboradores precargados en la BD tienen que ser válidos
     @Test
     fun rutsDeLosColaboradoresSonValidos() {
         listOf(

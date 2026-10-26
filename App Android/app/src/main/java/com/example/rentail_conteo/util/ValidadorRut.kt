@@ -1,10 +1,6 @@
 package com.example.rentail_conteo.util
 
-// Valida un RUT chileno con su dígito verificador (RN-18).
-// Está separado del ViewModel para poder reutilizarlo y probarlo solo.
 object ValidadorRut {
-
-    // "15.234.871-1" -> "152348711" (así se guarda en la BD)
     fun limpiar(rutTexto: String): String =
         rutTexto.replace(".", "").replace("-", "").trim().uppercase()
 
@@ -12,11 +8,10 @@ object ValidadorRut {
         val limpio = limpiar(rutTexto)
         if (limpio.length < 8) return false
 
-        val cuerpo = limpio.dropLast(1)      // "15234871"
-        val dvIngresado = limpio.last()      // '1'
+        val cuerpo = limpio.dropLast(1)
+        val dvIngresado = limpio.last()
         if (!cuerpo.all { it.isDigit() }) return false
 
-        // Recorre de derecha a izquierda multiplicando por 2,3,4,5,6,7,2,3...
         var suma = 0
         var multiplicador = 2
         for (digito in cuerpo.reversed()) {

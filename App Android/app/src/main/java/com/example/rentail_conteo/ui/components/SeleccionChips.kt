@@ -16,10 +16,6 @@ import com.example.rentail_conteo.model.Opciones
 import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.ui.theme.Rentail_ConteoTheme
 
-// Un título + un grupo de "chips" (botoncitos) para elegir UNA opción tocándola.
-// FlowRow = una fila que salta a la línea siguiente cuando ya no caben más chips.
-// Es genérico (<T>): sirve para textos (rango etario, color) y para accesos.
-// error: mensaje rojo debajo (null = sin error).
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun <T> SeleccionChips(
