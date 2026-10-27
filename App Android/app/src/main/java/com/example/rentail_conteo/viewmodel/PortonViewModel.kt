@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import com.example.rentail_conteo.data.RinconSurDbHelper
 import com.example.rentail_conteo.model.AccesoItem
+import com.example.rentail_conteo.model.Franjas
 import com.example.rentail_conteo.model.PersonaIngreso
 import com.example.rentail_conteo.model.PortonUIState
 import com.example.rentail_conteo.util.Fechas
@@ -12,16 +13,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-// Lógica del observador en la puerta: valida y guarda a cada persona que entra.
 class PortonViewModel(application: Application) : AndroidViewModel(application) {
-
     private val db = RinconSurDbHelper.obtener(application)
 
-    // Los accesos se leen de la BD (no están escritos a mano en el código)
     private val _uiState = MutableStateFlow(PortonUIState(accesos = db.listarAccesos()))
     val uiState: StateFlow<PortonUIState> = _uiState.asStateFlow()
 
-    // Si el supervisor le asignó una puerta para hoy, se deja elegida de entrada
     fun cargarTurno(idObservador: Long) {
         val turno = db.turnoDeHoy(idObservador, Fechas.hoy()) ?: return
         _uiState.update { it.copy(turnoHoy = "${turno.franja} · ${turno.puestoLegible()}") }
@@ -53,9 +50,15 @@ class PortonViewModel(application: Application) : AndroidViewModel(application) 
 
     fun mensajeMostrado() = _uiState.update { it.copy(mensaje = null) }
 
-    // Botón "Registrar ingreso"
     fun onRegistrar(idObservador: Long) {
         val estado = _uiState.value
+
+        if (!Franjas.tiendaAbierta(Fechas.hora(Fechas.ahora()))) {
+            _uiState.update {
+                it.copy(mensaje = "La tienda está cerrada (abre de ${Franjas.APERTURA} a ${Franjas.CIERRE}). No se pueden registrar ingresos ahora")
+            }
+            return
+        }
 
         val errorAcceso = if (estado.accesoElegido == null) "Elige en qué acceso estás" else null
         val errorRango = if (estado.rangoEtario == null) "Elige un rango de edad" else null
@@ -74,7 +77,6 @@ class PortonViewModel(application: Application) : AndroidViewModel(application) 
             .any { it != null }
         if (hayErrores) return
 
-        // Aquí ya se sabe que no son null (si lo fueran, habría error y se habría salido arriba)
         val acceso = estado.accesoElegido!!
         val id = db.insertarPersona(
             PersonaIngreso(
@@ -94,7 +96,6 @@ class PortonViewModel(application: Application) : AndroidViewModel(application) 
             return
         }
 
-        // Se limpian los datos de la persona, pero el ACCESO se mantiene (el observador sigue en su puerta)
         _uiState.update {
             PortonUIState(
                 accesos = it.accesos,

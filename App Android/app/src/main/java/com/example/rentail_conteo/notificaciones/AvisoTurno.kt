@@ -12,28 +12,18 @@ import androidx.core.app.NotificationManagerCompat
 import com.example.rentail_conteo.MainActivity
 import com.example.rentail_conteo.R
 import com.example.rentail_conteo.data.RinconSurDbHelper
+import com.example.rentail_conteo.data.SesionPreferencias
 import com.example.rentail_conteo.model.Franjas
 import com.example.rentail_conteo.model.Turno
 import com.example.rentail_conteo.permisos.Permisos
 import com.example.rentail_conteo.util.Fechas
 
-// RECURSO NATIVO: notificaciones del sistema + AlarmManager.
-//
-// Para qué: el conteo solo sirve si CADA puerta tiene a alguien anotando todo el tiempo.
-// Si el observador se va sin entregar su puerta, las personas que entran en ese rato no quedan
-// registradas (el conteo sale incompleto y el % de compradores sale inflado).
-// Por eso, poco antes de que termine el turno (entre 15 y 5 minutos antes), el teléfono avisa quién lo reemplaza.
-//
-//   Inicio de sesión ──programar()──▶ AlarmManager ──(a la hora)──▶ AvisoTurnoReceiver ──mostrar()──▶ notificación
 object AvisoTurno {
-
     private const val CANAL = "fin_de_turno"
-    private const val AVISO_DESDE = 15                 // la ventana del aviso parte 15 min antes del fin...
-    private const val VENTANA = 10                     // ...y dura 10 min (Android no acepta ventanas más cortas)
+    private const val AVISO_DESDE = 15
+    private const val VENTANA = 10
     const val EXTRA_ID_TURNO = "id_turno"
 
-    // Android 8+ exige un "canal" para cada tipo de notificación (el usuario puede silenciarlo en Ajustes).
-    // Crearlo varias veces no hace nada malo: si ya existe, se ignora.
     fun crearCanal(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val canal = NotificationChannel(CANAL, "Fin de turno", NotificationManager.IMPORTANCE_HIGH).apply {
@@ -43,9 +33,6 @@ object AvisoTurno {
         }
     }
 
-    // ---------------------------- PROGRAMAR ----------------------------
-
-    // Deja programado el aviso de cada turno de hoy que todavía no termina
     fun programarDeHoy(context: Context, turnos: List<Turno>) {
         turnos.forEach { programar(context, it) }
     }
@@ -53,23 +40,17 @@ object AvisoTurno {
     private fun programar(context: Context, turno: Turno) {
         val fin = Fechas.aMillisLocal("${turno.fecha} ${Franjas.horaFin(turno.franja)}")
         val desde = fin - AVISO_DESDE * 60_000L
-        if (desde <= System.currentTimeMillis()) return           // ese momento ya pasó
+        if (desde <= System.currentTimeMillis()) return
 
         val alarmas = context.getSystemService(AlarmManager::class.java)
-        // setWindow: Android puede mover la alarma, pero SOLO dentro de la ventana [desde, desde + VENTANA].
-        // Con 15 y 10 minutos, el aviso llega entre 15 y 5 minutos antes del fin: nunca después de que terminó.
-        // (Una alarma "aproximada" normal podía atrasarse hasta 1 hora; una exacta pide un permiso especial.)
         alarmas.setWindow(AlarmManager.RTC_WAKEUP, desde, VENTANA * 60_000L, intentAlarma(context, turno.id))
     }
 
-    // Al cerrar sesión: se borran los avisos pendientes de ese trabajador
     fun cancelarDeHoy(context: Context, turnos: List<Turno>) {
         val alarmas = context.getSystemService(AlarmManager::class.java)
         turnos.forEach { alarmas.cancel(intentAlarma(context, it.id)) }
     }
 
-    // PendingIntent = "un Intent para usar más tarde". Lo dispara el AlarmManager, no la app.
-    // requestCode = id del turno: así cada turno tiene su propia alarma y no se pisan.
     private fun intentAlarma(context: Context, idTurno: Long): PendingIntent {
         val intent = Intent(context, AvisoTurnoReceiver::class.java).putExtra(EXTRA_ID_TURNO, idTurno)
         return PendingIntent.getBroadcast(
@@ -78,13 +59,10 @@ object AvisoTurno {
         )
     }
 
-    // ---------------------------- MOSTRAR ----------------------------
-
-    // Arma el texto con lo que hay en la BD EN ESE MOMENTO (si el supervisor cambió el reemplazo, sale el nuevo).
-    // Devuelve false si no se pudo mostrar (sin permiso o el turno ya no existe).
     fun mostrar(context: Context, idTurno: Long): Boolean {
         val db = RinconSurDbHelper.obtener(context)
-        val turno = db.buscarTurno(idTurno) ?: return false       // el supervisor lo quitó
+        val turno = db.buscarTurno(idTurno) ?: return false
+        if (turno.idUsuario != SesionPreferencias(context).leer()) return false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             !Permisos.tiene(context, Permisos.NOTIFICACIONES)
         ) return false
@@ -102,10 +80,10 @@ object AvisoTurno {
             .setSmallIcon(R.drawable.ic_campana)
             .setContentTitle("Tu turno en ${turno.puestoLegible()} termina a las ${Franjas.horaFin(turno.franja)}")
             .setContentText(detalle)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(detalle))   // texto largo sin cortarse
+            .setStyle(NotificationCompat.BigTextStyle().bigText(detalle))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(intentAbrirApp(context))                      // al tocarla, abre la app
-            .setAutoCancel(true)                                            // y desaparece
+            .setContentIntent(intentAbrirApp(context))
+            .setAutoCancel(true)
             .build()
 
         NotificationManagerCompat.from(context).notify(idTurno.toInt(), notificacion)

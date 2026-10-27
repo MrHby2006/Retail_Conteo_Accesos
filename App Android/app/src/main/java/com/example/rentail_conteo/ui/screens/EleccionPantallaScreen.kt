@@ -42,8 +42,6 @@ import com.example.rentail_conteo.ui.components.BarraSuperior
 import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.viewmodel.EleccionViewModel
 
-// Por ahora TODOS los trabajadores de piso pueden usar las dos pantallas: aquí eligen cuál.
-// (Más adelante, el turno que asigna el supervisor decidirá cuál ven, sin preguntar.)
 @Composable
 fun EleccionPantallaScreen(
     trabajador: Usuario,
@@ -59,13 +57,10 @@ fun EleccionPantallaScreen(
 
     LaunchedEffect(trabajador.id) { viewModel.cargar(trabajador.id) }
 
-    // PERMISOS paso 3: pedir. Solo existe desde Android 13; en versiones anteriores ya viene concedido.
-    // Paso 4: si lo rechaza, se avisa con un botón "Ajustes" (por si ya no se muestra el diálogo).
     val pedirPermisoNotificaciones = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
         if (!ok) viewModel.avisarSinPermiso()
     }
     LaunchedEffect(Unit) {
-        // Paso 2: verificar antes de pedir
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !Permisos.tiene(context, Permisos.NOTIFICACIONES)) {
             pedirPermisoNotificaciones.launch(Permisos.NOTIFICACIONES)
         }
@@ -95,7 +90,6 @@ fun EleccionPantallaScreen(
                     ?: "Hoy no tienes turno asignado",
                 style = MaterialTheme.typography.bodyLarge
             )
-            // El aviso real llega entre 15 y 5 minutos antes del fin del turno. Este botón lo muestra al tiro (para la demo).
             if (turno != null) {
                 TextButton(onClick = viewModel::probarAviso) {
                     Icon(painterResource(R.drawable.ic_campana), contentDescription = null)
@@ -122,7 +116,6 @@ fun EleccionPantallaScreen(
     }
 }
 
-// Tarjeta grande que se toca. "sugerida" = coincide con su turno: se pinta con el color principal.
 @Composable
 private fun OpcionPantalla(titulo: String, detalle: String, icono: Int, sugerida: Boolean, onClick: () -> Unit) {
     Card(

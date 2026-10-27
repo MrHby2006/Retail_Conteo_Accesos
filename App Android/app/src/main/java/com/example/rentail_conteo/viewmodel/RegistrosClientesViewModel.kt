@@ -15,11 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-// Lógica del cajero:
-//  1) buscar entre las personas anotadas en la puerta a la que está comprando (con filtros);
-//  2) confirmar la compra: datos opcionales del cliente + foto de la boleta (obligatoria).
 class RegistrosClientesViewModel(application: Application) : AndroidViewModel(application) {
-
     private val db = RinconSurDbHelper.obtener(application)
 
     private val _uiState = MutableStateFlow(RegistrosClientesUIState())
@@ -29,9 +25,6 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
         buscar()
     }
 
-    // ----------------------------- BUSCAR -----------------------------
-
-    // Tocar un filtro ya elegido lo QUITA (vuelve a null); tocar otro lo cambia.
     fun onFiltroRango(valor: String) {
         _uiState.update { it.copy(filtroRango = if (it.filtroRango == valor) null else valor) }
         buscar()
@@ -57,13 +50,10 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
         _uiState.update { it.copy(candidatos = candidatos) }
     }
 
-    // ----------------------------- CONFIRMAR COMPRA -----------------------------
-
     fun onElegirPersona(persona: PersonaIngreso) {
         _uiState.update { it.copy(personaElegida = persona) }
     }
 
-    // "Cambiar persona": vuelve a la búsqueda y descarta lo que se había escrito
     fun onCancelar() {
         _uiState.update {
             it.copy(
@@ -77,10 +67,8 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
 
     fun onCorreoCambia(valor: String) = _uiState.update { it.copy(correoCliente = valor.trim(), errorCorreo = null) }
 
-    // Cámara: llega un Bitmap
     fun onFotoTomada(foto: Bitmap) = _uiState.update { it.copy(fotoBoleta = foto, errorFoto = null) }
 
-    // Galería: llega un Uri y se convierte a Bitmap
     fun onImagenElegida(uri: Uri) {
         val foto = ConvertidorImagen.desdeUri(getApplication(), uri)
         _uiState.update {
@@ -91,13 +79,11 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
 
     fun mensajeMostrado() = _uiState.update { it.copy(mensaje = null) }
 
-    // Botón "Guardar compra"
     fun onGuardar(idCajero: Long) {
         val estado = _uiState.value
         val persona = estado.personaElegida ?: return
         val nombre = estado.nombreCliente.trim()
 
-        // El nombre y el correo son OPCIONALES: solo se validan si el cliente los quiso dar
         val errorNombre = when {
             nombre.isEmpty() -> null
             !nombre.all { it.isLetter() || it == ' ' } -> "El nombre solo puede tener letras"
@@ -114,7 +100,6 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
         _uiState.update { it.copy(errorNombre = errorNombre, errorCorreo = errorCorreo, errorFoto = errorFoto) }
         if (errorNombre != null || errorCorreo != null || estado.fotoBoleta == null) return
 
-        // 1) La foto se guarda como archivo
         val archivo = ConvertidorImagen.guardar(
             getApplication(), estado.fotoBoleta, "boleta_${persona.id}_${System.currentTimeMillis()}.jpg"
         )
@@ -123,7 +108,6 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
             return
         }
 
-        // 2) La compra va a la BD. ifEmpty { null }: si no escribió nada, se guarda vacío (NULL)
         val ok = db.registrarCompra(
             idPersona = persona.id,
             idCajero = idCajero,
@@ -138,7 +122,6 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
             return
         }
 
-        // 3) Se vuelve a la búsqueda: la persona ya no aparece porque ahora compro = 1
         onCancelar()
         _uiState.update { it.copy(mensaje = "Compra registrada") }
         buscar()

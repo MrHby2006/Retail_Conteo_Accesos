@@ -73,14 +73,11 @@ import com.example.rentail_conteo.util.Fechas
 import com.example.rentail_conteo.viewmodel.RegistrosClientesViewModel
 import kotlinx.coroutines.launch
 
-// Pantalla del CAJERO.
-//  - Modo buscar: filtra a las personas que entraron y aún no compran, y toca a la que está pagando.
-//  - Modo confirmar: datos opcionales del cliente + FOTO DE LA BOLETA (recurso nativo: cámara / galería).
 @Composable
 fun RegistrosClientesScreen(
     cajero: Usuario,
     onCerrarSesion: () -> Unit,
-    onVolver: () -> Unit,          // vuelve a la elección Puerta / Caja
+    onVolver: () -> Unit,
     viewModel: RegistrosClientesViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -95,7 +92,6 @@ fun RegistrosClientesScreen(
         }
     }
 
-    // PERMISOS paso 4 (rechazado): mensaje con botón "Ajustes"
     fun avisarDenegado(mensaje: String) {
         scope.launch {
             val r = snackbarHostState.showSnackbar(mensaje, "Ajustes", duration = SnackbarDuration.Long)
@@ -103,20 +99,16 @@ fun RegistrosClientesScreen(
         }
     }
 
-    // ---------- CÁMARA ----------
-    // TakePicturePreview abre la cámara y devuelve la foto como Bitmap (null si se canceló)
     val lanzadorCamara = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { foto: Bitmap? ->
         if (foto != null) viewModel.onFotoTomada(foto)
     }
     fun abrirCamara() {
         try { lanzadorCamara.launch(null) } catch (e: ActivityNotFoundException) { }
     }
-    // PERMISOS paso 3: pedir. El resultado llega a esta lambda (ok = true si aceptó)
     val pedirPermisoCamara = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
         if (ok) abrirCamara() else avisarDenegado("Sin permiso de cámara no se puede fotografiar la boleta")
     }
 
-    // ---------- GALERÍA ----------
     val lanzadorGaleria = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { resultado ->
         val uri = resultado.data?.data
         if (resultado.resultCode == Activity.RESULT_OK && uri != null) viewModel.onImagenElegida(uri)
@@ -135,7 +127,6 @@ fun RegistrosClientesScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
-        // ANIMACIÓN: al elegir una persona, la búsqueda se desvanece y aparece el formulario (y al revés)
         AnimatedContent(
             targetState = uiState.personaElegida,
             transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -149,7 +140,6 @@ fun RegistrosClientesScreen(
                     persona = persona,
                     uiState = uiState,
                     viewModel = viewModel,
-                    // PERMISOS paso 2: verificar. Si ya está concedido se abre directo; si no, se pide.
                     onCamara = {
                         if (Permisos.tiene(context, Permisos.CAMARA)) abrirCamara()
                         else pedirPermisoCamara.launch(Permisos.CAMARA)
@@ -165,8 +155,6 @@ fun RegistrosClientesScreen(
     }
 }
 
-// ----------------------------- MODO BUSCAR -----------------------------
-
 @Composable
 private fun BuscarComprador(uiState: RegistrosClientesUIState, viewModel: RegistrosClientesViewModel) {
     LazyColumn(
@@ -181,7 +169,6 @@ private fun BuscarComprador(uiState: RegistrosClientesUIState, viewModel: Regist
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-        // Sin filtro "Entró por": desde la caja no se ve por qué puerta entró la persona
         item {
             SeleccionChips(
                 titulo = "Rango de edad",
@@ -216,7 +203,6 @@ private fun BuscarComprador(uiState: RegistrosClientesUIState, viewModel: Regist
                 modifier = Modifier.padding(top = Dimens.espacioChico)
             )
         }
-        // key = id: Compose sabe qué tarjeta es cuál. ANIMACIÓN: animateItem() las desliza al filtrar.
         items(uiState.candidatos, key = { it.id }) { persona ->
             TarjetaPersona(
                 persona = persona,
@@ -247,8 +233,6 @@ private fun TarjetaPersona(persona: PersonaIngreso, onClick: () -> Unit, modifie
     }
 }
 
-// ----------------------------- MODO CONFIRMAR -----------------------------
-
 @Composable
 private fun ConfirmarCompra(
     persona: PersonaIngreso,
@@ -269,7 +253,6 @@ private fun ConfirmarCompra(
         TarjetaPersona(persona = persona, onClick = {})
         TextButton(onClick = viewModel::onCancelar) { Text("Cambiar persona") }
 
-        // Datos OPCIONALES (componentes de Harol): solo si el cliente quiere darlos
         CampoNombre(
             valor = uiState.nombreCliente,
             onValorCambia = viewModel::onNombreCambia,
@@ -286,7 +269,6 @@ private fun ConfirmarCompra(
             tipoTeclado = KeyboardType.Email
         )
 
-        // Foto de la boleta (obligatoria)
         Text("Foto de la boleta", style = MaterialTheme.typography.titleSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.espacioChico)) {
             OutlinedButton(onClick = onCamara) {
@@ -300,7 +282,6 @@ private fun ConfirmarCompra(
                 Text("Galería")
             }
         }
-        // ANIMACIÓN: la vista previa aparece creciendo cuando llega la foto
         AnimatedVisibility(visible = uiState.fotoBoleta != null, enter = scaleIn() + fadeIn()) {
             uiState.fotoBoleta?.let { foto ->
                 Image(

@@ -10,10 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-// Pantalla donde el trabajador elige si va a la puerta o a la caja.
-// Además busca su turno de hoy: lo muestra como ayuda y le programa el aviso de fin de turno.
 class EleccionViewModel(application: Application) : AndroidViewModel(application) {
-
     private val db = RinconSurDbHelper.obtener(application)
 
     private val _turnoHoy = MutableStateFlow<Turno?>(null)
@@ -24,11 +21,9 @@ class EleccionViewModel(application: Application) : AndroidViewModel(application
 
     fun cargar(idTrabajador: Long) {
         _turnoHoy.value = db.turnoDeHoy(idTrabajador, Fechas.hoy())
-        // Se programa aunque todavía no haya permiso: si no lo hay, al llegar la hora simplemente no se muestra
         AvisoTurno.programarDeHoy(getApplication(), db.turnosDeHoy(idTrabajador, Fechas.hoy()))
     }
 
-    // Botón "Probar aviso" (para la demo): muestra YA la notificación que llegaría al final del turno
     fun probarAviso() {
         val turno = _turnoHoy.value ?: return
         val ok = AvisoTurno.mostrar(getApplication(), turno.id)

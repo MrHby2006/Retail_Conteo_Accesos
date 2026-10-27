@@ -11,9 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.painterResource
 import com.example.rentail_conteo.R
 
-// Barra de arriba de cada pantalla: título y botón para cerrar sesión.
-// onVolver: si viene, aparece una flecha a la izquierda (null = pantalla principal del rol, sin flecha).
-// (mismos colores que la barra de DivisionScreen)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BarraSuperior(titulo: String, onCerrarSesion: () -> Unit, onVolver: (() -> Unit)? = null) {

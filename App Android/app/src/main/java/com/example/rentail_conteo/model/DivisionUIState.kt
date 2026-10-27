@@ -6,7 +6,6 @@ data class AccesoItem(
     val nombre: String
 )
 
-// Los accesos ya no van escritos aquí: DivisionViewModel los lee desde la BD (tabla "accesos")
 data class DivisionUIState (
     val accesosDisponibles: List<AccesoItem> = emptyList(),
     val accesoSeleccionado: AccesoItem? = null,
