@@ -48,6 +48,7 @@ fun TurnosScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val scroll = rememberScrollState()
 
     val hoyMillis = remember { Fechas.aMillisUtc(Fechas.hoy()) }
     val calendario = rememberDatePickerState(
@@ -58,6 +59,10 @@ fun TurnosScreen(
     )
     LaunchedEffect(calendario.selectedDateMillis) {
         calendario.selectedDateMillis?.let { viewModel.onDiaElegido(Fechas.desdeMillisUtc(it)) }
+    }
+
+    LaunchedEffect(uiState.turnoEnEdicion) {
+        if (uiState.turnoEnEdicion != null) scroll.animateScrollTo(0)
     }
 
     LaunchedEffect(uiState.mensaje) {
@@ -75,48 +80,74 @@ fun TurnosScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .padding(Dimens.espacioPantalla),
             verticalArrangement = Arrangement.spacedBy(Dimens.espacioMedio)
         ) {
-            Text("Día", style = MaterialTheme.typography.titleSmall)
-            DatePicker(
-                state = calendario,
-                title = null,
-                headline = null,
-                showModeToggle = false
-            )
+            val enEdicion = uiState.turnoEnEdicion
 
-            SeleccionChips(
-                titulo = "Trabajador",
-                opciones = uiState.trabajadores,
-                seleccionada = uiState.trabajadorElegido,
-                onSeleccionar = viewModel::onTrabajadorElegido,
-                textoDe = { it.nombreCorto() },
-                error = uiState.errorTrabajador
-            )
-            SeleccionChips(
-                titulo = "Horario",
-                opciones = Franjas.todas,
-                seleccionada = uiState.franjaElegida,
-                onSeleccionar = viewModel::onFranjaElegida,
-                textoDe = { "$it (${Franjas.horario(it)})" },
-                error = uiState.errorFranja
-            )
-            SeleccionChips(
-                titulo = "Puesto",
-                opciones = uiState.puestos,
-                seleccionada = uiState.puestoElegido,
-                onSeleccionar = viewModel::onPuestoElegido,
-                textoDe = { if (it == Turno.PUESTO_CAJA) "Caja" else "Puerta $it" },
-                error = uiState.errorPuesto
-            )
+            if (enEdicion == null) {
+                Text("Día", style = MaterialTheme.typography.titleSmall)
+                DatePicker(
+                    state = calendario,
+                    title = null,
+                    headline = null,
+                    showModeToggle = false
+                )
+            } else {
+                Text(
+                    "Modificando el turno de ${enEdicion.nombreTrabajador} · ${Fechas.diaCorto(enEdicion.fecha)}",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    "Si la persona no puede ir, elige a quien la reemplaza.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
 
-            Boton(
-                texto = "Asignar turno",
-                onClick = { viewModel.onAsignar(supervisor.id) },
-                modifier = Modifier.fillMaxWidth()
-            )
+            if (enEdicion == null && uiState.esHoy) {
+                Text(
+                    "Hoy no se pueden asignar turnos nuevos. Si alguien no puede venir, toca Modificar en su turno.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            } else {
+                SeleccionChips(
+                    titulo = "Trabajador",
+                    opciones = uiState.trabajadores,
+                    seleccionada = uiState.trabajadorElegido,
+                    onSeleccionar = viewModel::onTrabajadorElegido,
+                    textoDe = { it.nombreCorto() },
+                    error = uiState.errorTrabajador
+                )
+                SeleccionChips(
+                    titulo = "Horario",
+                    opciones = Franjas.todas,
+                    seleccionada = uiState.franjaElegida,
+                    onSeleccionar = viewModel::onFranjaElegida,
+                    textoDe = { "$it (${Franjas.horario(it)})" },
+                    error = uiState.errorFranja
+                )
+                SeleccionChips(
+                    titulo = "Puesto",
+                    opciones = uiState.puestos,
+                    seleccionada = uiState.puestoElegido,
+                    onSeleccionar = viewModel::onPuestoElegido,
+                    textoDe = { if (it == Turno.PUESTO_CAJA) "Caja" else "Puerta $it" },
+                    error = uiState.errorPuesto
+                )
+
+                Boton(
+                    texto = if (enEdicion == null) "Asignar turno" else "Guardar cambios",
+                    onClick = { viewModel.onGuardar(supervisor.id) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (enEdicion != null) {
+                    TextButton(
+                        onClick = viewModel::onCancelarModificacion,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Cancelar") }
+                }
+            }
 
             HorizontalDivider()
 
@@ -128,14 +159,18 @@ fun TurnosScreen(
                 Text("Todavía no hay turnos asignados este día.", style = MaterialTheme.typography.bodyMedium)
             }
             uiState.turnosDelDia.forEach { turno ->
-                TarjetaTurno(turno = turno, onQuitar = { viewModel.onQuitar(turno) })
+                TarjetaTurno(
+                    turno = turno,
+                    enEdicion = turno.id == enEdicion?.id,
+                    onModificar = { viewModel.onModificar(turno) }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun TarjetaTurno(turno: Turno, onQuitar: () -> Unit) {
+private fun TarjetaTurno(turno: Turno, enEdicion: Boolean, onModificar: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(Dimens.espacioMedio),
@@ -148,7 +183,11 @@ private fun TarjetaTurno(turno: Turno, onQuitar: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
-            TextButton(onClick = onQuitar) { Text("Quitar") }
+            when {
+                enEdicion -> Text("Editando", style = MaterialTheme.typography.labelLarge)
+                turno.yaTermino() -> Text("Terminado", style = MaterialTheme.typography.labelLarge)
+                else -> TextButton(onClick = onModificar) { Text("Modificar") }
+            }
         }
     }
 }

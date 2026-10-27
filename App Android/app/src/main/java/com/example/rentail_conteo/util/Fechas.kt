@@ -1,6 +1,7 @@
 package com.example.rentail_conteo.util
 
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -9,6 +10,11 @@ object Fechas {
     fun ahora(): String = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date())
 
     fun hoy(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+
+    fun manana(): String {
+        val calendario = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, 1) }
+        return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendario.time)
+    }
 
     fun hora(fechaHora: String): String = fechaHora.drop(11).take(5)
 

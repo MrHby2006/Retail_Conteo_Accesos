@@ -332,8 +332,13 @@ class RinconSurDbHelper(context: Context) :
         return writableDatabase.insert("turnos", null, valores)
     }
 
-    fun eliminarTurno(idTurno: Long) {
-        writableDatabase.delete("turnos", "id_turno = ?", arrayOf(idTurno.toString()))
+    fun actualizarTurno(idTurno: Long, idUsuario: Long, franja: String, puesto: String): Boolean {
+        val valores = ContentValues().apply {
+            put("id_usuario", idUsuario)
+            put("franja", franja)
+            put("puesto", puesto)
+        }
+        return writableDatabase.update("turnos", valores, "id_turno = ?", arrayOf(idTurno.toString())) == 1
     }
 
     fun turnoDeHoy(idUsuario: Long, hoy: String): Turno? {
@@ -421,6 +426,32 @@ class RinconSurDbHelper(context: Context) :
 
     fun indicadoresPorCompania(idAcceso: Long?, fechaPrefijo: String?) =
         agruparPor("acompanado", idAcceso, fechaPrefijo)
+
+    fun indicadoresPorAcceso(fechaPrefijo: String?): List<FilaIndicador> {
+        var sql = "SELECT a.codigo || ' · ' || a.nombre AS grupo, COUNT(p.id_persona) AS ingresos, " +
+                "COALESCE(SUM(p.compro), 0) AS compradores " +
+                "FROM accesos a LEFT JOIN personas_ingreso p ON p.id_acceso = a.id_acceso"
+        val args = mutableListOf<String>()
+        if (fechaPrefijo != null) {
+            sql += " AND p.fecha_hora LIKE ?"
+            args.add("$fechaPrefijo%")
+        }
+        sql += " GROUP BY a.id_acceso ORDER BY a.id_acceso"
+
+        val lista = mutableListOf<FilaIndicador>()
+        readableDatabase.rawQuery(sql, args.toTypedArray()).use { cursor ->
+            while (cursor.moveToNext()) {
+                lista.add(
+                    FilaIndicador(
+                        grupo = cursor.getString(cursor.getColumnIndexOrThrow("grupo")),
+                        ingresos = cursor.getInt(cursor.getColumnIndexOrThrow("ingresos")),
+                        compradores = cursor.getInt(cursor.getColumnIndexOrThrow("compradores"))
+                    )
+                )
+            }
+        }
+        return lista
+    }
 
     private fun leerUsuario(c: Cursor) = Usuario(
         id = c.getLong(c.getColumnIndexOrThrow("id_usuario")),

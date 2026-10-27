@@ -12,6 +12,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.example.rentail_conteo.MainActivity
 import com.example.rentail_conteo.R
 import com.example.rentail_conteo.data.RinconSurDbHelper
+import com.example.rentail_conteo.data.SesionPreferencias
 import com.example.rentail_conteo.model.Franjas
 import com.example.rentail_conteo.model.Turno
 import com.example.rentail_conteo.permisos.Permisos
@@ -61,6 +62,7 @@ object AvisoTurno {
     fun mostrar(context: Context, idTurno: Long): Boolean {
         val db = RinconSurDbHelper.obtener(context)
         val turno = db.buscarTurno(idTurno) ?: return false
+        if (turno.idUsuario != SesionPreferencias(context).leer()) return false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             !Permisos.tiene(context, Permisos.NOTIFICACIONES)
         ) return false
