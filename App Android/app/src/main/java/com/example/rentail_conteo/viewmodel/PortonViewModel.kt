@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import com.example.rentail_conteo.data.RinconSurDbHelper
 import com.example.rentail_conteo.model.AccesoItem
+import com.example.rentail_conteo.model.Franjas
 import com.example.rentail_conteo.model.PersonaIngreso
 import com.example.rentail_conteo.model.PortonUIState
 import com.example.rentail_conteo.util.Fechas
@@ -51,6 +52,13 @@ class PortonViewModel(application: Application) : AndroidViewModel(application) 
 
     fun onRegistrar(idObservador: Long) {
         val estado = _uiState.value
+
+        if (!Franjas.tiendaAbierta(Fechas.hora(Fechas.ahora()))) {
+            _uiState.update {
+                it.copy(mensaje = "La tienda está cerrada (abre de ${Franjas.APERTURA} a ${Franjas.CIERRE}). No se pueden registrar ingresos ahora")
+            }
+            return
+        }
 
         val errorAcceso = if (estado.accesoElegido == null) "Elige en qué acceso estás" else null
         val errorRango = if (estado.rangoEtario == null) "Elige un rango de edad" else null
