@@ -36,6 +36,7 @@ class IndicadoresViewModel(application: Application) : AndroidViewModel(applicat
         val porRango = db.indicadoresPorRango(idAcceso, fecha)
             .sortedBy { Opciones.rangosEtarios.indexOf(it.grupo) }
         val porCompania = db.indicadoresPorCompania(idAcceso, fecha)
+        val porAcceso = if (idAcceso == null) db.indicadoresPorAcceso(fecha) else emptyList()
 
         val masCompra = porRango
             .filter { it.compradores > 0 }
@@ -43,12 +44,17 @@ class IndicadoresViewModel(application: Application) : AndroidViewModel(applicat
         val noCompra = porRango
             .filter { it.noCompradores > 0 }
             .maxByOrNull { it.noCompradores }
+        val masDePaso = porAcceso
+            .filter { it.noCompradores > 0 }
+            .maxWithOrNull(compareBy({ 100 - it.conversion }, { it.noCompradores }))
 
         _uiState.update {
             it.copy(
                 ingresos = porRango.sumOf { fila -> fila.ingresos },
                 compradores = porRango.sumOf { fila -> fila.compradores },
                 porRango = porRango,
+                porAcceso = porAcceso,
+                accesoMasDePaso = masDePaso,
                 perfilQueMasCompra = masCompra?.grupo,
                 perfilQueNoCompra = noCompra?.grupo,
                 conversionSolos = porCompania.firstOrNull { fila -> fila.grupo == "0" }?.conversion ?: 0,

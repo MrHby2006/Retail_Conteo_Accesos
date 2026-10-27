@@ -107,6 +107,27 @@ fun IndicadoresScreen(
 
             GraficoConversion(conversion = uiState.conversion, progreso = progreso.value)
 
+            if (uiState.porAcceso.isNotEmpty()) {
+                Text("Por acceso", style = MaterialTheme.typography.titleMedium)
+                Leyenda()
+                val maximoAcceso = uiState.porAcceso.maxOf { it.ingresos }
+                uiState.porAcceso.forEach { fila ->
+                    BarraRango(fila = fila, maximo = maximoAcceso, progreso = progreso.value)
+                }
+                uiState.accesoMasDePaso?.let { fila ->
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(Dimens.espacioMedio),
+                            verticalArrangement = Arrangement.spacedBy(Dimens.espacioMini)
+                        ) {
+                            Text("Acceso con más gente de paso", style = MaterialTheme.typography.titleMedium)
+                            Text(fila.grupo, fontWeight = FontWeight.Bold)
+                            Text("${100 - fila.conversion} % de los que entran no compra (${fila.noCompradores} de ${fila.ingresos})")
+                        }
+                    }
+                }
+            }
+
             Text("Por rango de edad", style = MaterialTheme.typography.titleMedium)
             Leyenda()
             val maximo = uiState.porRango.maxOf { it.ingresos }
