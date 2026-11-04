@@ -19,7 +19,7 @@ class TurnosViewModel(application: Application) : AndroidViewModel(application) 
         TurnosUIState(
             diaElegido = Fechas.manana(),
             trabajadores = db.listarTrabajadores(),
-            puestos = listOf(Turno.PUESTO_CAJA) + db.listarAccesos().map { it.codigo },
+            puestos = listOf(Turno.PUESTO_CAJA) + db.listarAccesos(soloActivos = true).map { it.codigo },
             turnosDelDia = db.listarTurnos(Fechas.manana())
         )
     )

@@ -1,10 +1,12 @@
 package com.example.rentail_conteo.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.rentail_conteo.model.AccesoItem
@@ -43,19 +45,38 @@ fun DivisionScreen(
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.espacioChico)) {
                 uiState.accesosDisponibles.forEach { acceso ->
                     val esSeleccionado = uiState.accesoSeleccionado?.id == acceso.id
-                    FilterChip(
-                        selected = esSeleccionado,
-                        onClick = { viewModel.seleccionarAcceso(acceso) },
-                        label = {
-                            Text(
-                                if (acceso.id == 0) acceso.nombre else "${acceso.codigo}: ${acceso.nombre}",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        },
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
-                    )
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        FilterChip(
+                            selected = esSeleccionado,
+                            enabled = acceso.id == 0 || acceso.activada,
+                            onClick = { viewModel.seleccionarAcceso(acceso) },
+                            label = {
+                                Text(
+                                    if (acceso.id == 0) acceso.nombre else "${acceso.codigo}: ${acceso.nombre}",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                        )
+
+                        if (acceso.id != 0) {
+                            Spacer(modifier = Modifier.width(Dimens.espacioChico))
+                            Switch(
+                                checked = acceso.activada,
+                                onCheckedChange = { estaActivada ->
+                                    viewModel.cambiarEstadoAccesos(acceso, estaActivada)
+                                }
+                            )
+                        }
+                    }
                 }
             }
 

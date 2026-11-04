@@ -16,7 +16,7 @@ class RinconSurDbHelper(context: Context) :
     SQLiteOpenHelper(context, NOMBRE_BD, null, VERSION_BD) {
     companion object {
         private const val NOMBRE_BD = "rinconsur.db"
-        private const val VERSION_BD = 4
+        private const val VERSION_BD = 5
 
         @Volatile private var instancia: RinconSurDbHelper? = null
 
@@ -46,7 +46,11 @@ class RinconSurDbHelper(context: Context) :
                     "id_acceso INTEGER PRIMARY KEY, " +
                     "codigo TEXT NOT NULL UNIQUE, " +
                     "nombre TEXT NOT NULL, " +
-                    "ubicacion TEXT NOT NULL)"
+                    "ubicacion TEXT NOT NULL, " +
+                    "activada INTEGER NOT NULL DEFAULT 1)"
+
+        private const val SQL_AGREGAR_ACTIVA_ACCESOS =
+            "ALTER TABLE accesos ADD COLUMN activada INTEGER NOT NULL DEFAULT 1"
 
         private const val SQL_CREAR_PERSONAS =
             "CREATE TABLE personas_ingreso (" +
@@ -203,15 +207,21 @@ class RinconSurDbHelper(context: Context) :
         return usuario
     }
 
-    fun listarAccesos(): List<AccesoItem> {
+    fun listarAccesos(soloActivos: Boolean = false): List<AccesoItem> {
         val lista = mutableListOf<AccesoItem>()
+        val sql = if (soloActivos) {
+            "SELECT * FROM accesos WHERE activada = 1 ORDER BY id_accseso"
+        } else {
+            "SELECT * FROM accesos ORDER BY id_acceso"
+        }
         readableDatabase.rawQuery("SELECT * FROM accesos ORDER BY id_acceso", null).use { cursor ->
             while (cursor.moveToNext()) {
                 lista.add(
                     AccesoItem(
                         id = cursor.getInt(cursor.getColumnIndexOrThrow("id_acceso")),
                         codigo = cursor.getString(cursor.getColumnIndexOrThrow("codigo")),
-                        nombre = cursor.getString(cursor.getColumnIndexOrThrow("nombre"))
+                        nombre = cursor.getString(cursor.getColumnIndexOrThrow("nombre")),
+                        activada = cursor.getInt(cursor.getColumnIndexOrThrow("activada")) == 1
                     )
                 )
             }
@@ -485,4 +495,11 @@ class RinconSurDbHelper(context: Context) :
         detalle = c.getString(c.getColumnIndexOrThrow("detalle")),
         compro = c.getInt(c.getColumnIndexOrThrow("compro")) == 1
     )
+
+    private fun actualizarEstadoAccesos(idAcceso: Int, activada: Boolean):  Boolean {
+        val valores = ContentValues().apply {
+            put("activada", if (activada) 1 else 0)
+        }
+        return writableDatabase.update("accesos", valores, "id_acceso = ?", arrayOf(idAcceso.toString())) == 1
+    }
 }

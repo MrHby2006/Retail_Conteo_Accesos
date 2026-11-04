@@ -14,7 +14,7 @@ class DivisionViewModel(application: Application) : AndroidViewModel(application
     private val db = RinconSurDbHelper.obtener(application)
 
     private val _uiState = MutableStateFlow(
-        DivisionUIState(accesosDisponibles = listOf(AccesoItem(0, "", "Todos los accesos")) + db.listarAccesos())
+        DivisionUIState(accesosDisponibles = listOf(AccesoItem(0, "", "Todos los accesos", true)) + db.listarAccesos())
     )
     val uiState: StateFlow<DivisionUIState> = _uiState.asStateFlow()
 
@@ -30,5 +30,19 @@ class DivisionViewModel(application: Application) : AndroidViewModel(application
             _uiState.update { it.copy(errorMessage = "Elige un acceso (o Todos los accesos)") }
         }
         return acceso
+    }
+
+    fun cambiarEstadoAccesos(acceso: AccesoItem, activada: Boolean) {
+        db.actualizarEstadoAccesos(acceso.id, activada)
+
+        val accesosActualizados = listOf(AccesoItem(0, "", "Todos los accesos", true)) + db.listarAccesos()
+
+        _uiState.update { currentState ->
+            currentState.copy(
+                accesosDisponibles = accesosActualizados,
+                accesoSeleccionado = if (currentState.accesoSeleccionado?.id == acceso.id && !activada) null
+                                     else currentState.accesoSeleccionado
+            )
+        }
     }
 }

@@ -3,7 +3,8 @@ package com.example.rentail_conteo.model
 data class AccesoItem(
     val id: Int,
     val codigo: String,
-    val nombre: String
+    val nombre: String,
+    val activada: Boolean
 )
 
 data class DivisionUIState (
