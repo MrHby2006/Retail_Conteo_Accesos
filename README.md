@@ -7,6 +7,7 @@ Este proyecto es llevado a cabo por Harol Sarmiento y por Marco Diaz
 
 # Funcionalidad del sistema
 La aplicación se divide en diferentes pantallas dependiendo del rol que tenga la persona logeada en ese momento:
+
 1- Al iniciar la aplicación lo primero que te piden iniciar sesión y dependiendo de la cuenta que pongas te manda a una pantalla diferente, además de en el apartado de contraseña poner un texto abajo de ¿Olvidaste la contraseña? en donde el usuario en caso de olvidarse su contraseña escribir su Gmail laboral para recuperar la contraseña.
 
 2- Si la persona que inicia sesión tiene el rol de "Jefatura" será enviado a una pantalla donde tiene tres opciones. La primera es ver las estadísticas y los gráficos que se van generando en base a la información de quienes entran a la tienda. La segunda es poder deshabilitar las entradas que hay en la tienda, en caso de que alguna entrada tuviera alguna situación de fuerza mayor y la tercera seria el poder crear nuevos cuentas de los nuevos trabajadores que van contratando, además de poder modificar la información de esas cuentas creadas en caso de que tengan algun dato erroneo.
