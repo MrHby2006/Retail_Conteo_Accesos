@@ -23,4 +23,5 @@ La aplicación se puede correr tanto en Android Studio como en un dispositivo An
 
 # Links del proyecto
 Link Github: https://github.com/MrHby2006/Retail_Conteo_Accesos.git
+
 Link Trello: https://trello.com/invite/b/6ab3ce8619ffab82c6aec0ae/ATTIb53dc84df6aab13c2593f430e634c74a13368E38/retail-conteo-accesos
