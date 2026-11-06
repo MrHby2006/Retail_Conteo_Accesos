@@ -7,6 +7,7 @@ import android.util.Patterns
 import androidx.lifecycle.AndroidViewModel
 import com.example.rentail_conteo.data.ConvertidorImagen
 import com.example.rentail_conteo.data.RinconSurDbHelper
+import com.example.rentail_conteo.model.AccesoItem
 import com.example.rentail_conteo.model.PersonaIngreso
 import com.example.rentail_conteo.model.RegistrosClientesUIState
 import com.example.rentail_conteo.util.Fechas
@@ -22,6 +23,7 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
     val uiState: StateFlow<RegistrosClientesUIState> = _uiState.asStateFlow()
 
     init {
+        _uiState.update { it.copy(accesosDisponibles = db.listarAccesos()) }
         buscar()
     }
 
@@ -40,12 +42,30 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
         buscar()
     }
 
+    fun onFiltroAcceso(acceso: AccesoItem?) {
+        _uiState.update { it.copy(filtroAcceso = if (it.filtroAcceso?.id == acceso?.id) null else acceso) }
+        buscar()
+    }
+
+    fun onFiltroFecha(fecha: String?) {
+        _uiState.update { it.copy(filtroFecha = if (it.filtroFecha == fecha) null else fecha) }
+        buscar()
+    }
+
+    fun onFiltroFranja(franja: String?) {
+        _uiState.update { it.copy(filtroFranja = if (it.filtroFranja == franja) null else franja) }
+        buscar()
+    }
+
     private fun buscar() {
         val estado = _uiState.value
         val candidatos = db.buscarCandidatos(
             rangoEtario = estado.filtroRango,
             colorArriba = estado.filtroColor,
-            colorAbajo = estado.filtroColorAbajo
+            colorAbajo = estado.filtroColorAbajo,
+            idAcceso = estado.filtroAcceso?.id?.toLong(),
+            fecha = estado.filtroFecha,
+            franja = estado.filtroFranja
         )
         _uiState.update { it.copy(candidatos = candidatos) }
     }

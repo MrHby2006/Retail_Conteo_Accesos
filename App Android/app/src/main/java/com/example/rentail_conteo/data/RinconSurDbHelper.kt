@@ -255,7 +255,7 @@ class RinconSurDbHelper(context: Context) :
         return total
     }
 
-    fun buscarCandidatos(rangoEtario: String?, colorArriba: String?, colorAbajo: String?): List<PersonaIngreso> {
+    fun buscarCandidatos(rangoEtario: String?, colorArriba: String?, colorAbajo: String?, idAcceso: Long?, fecha: String?, franja: String?): List<PersonaIngreso> {
         var sql = "SELECT p.*, a.codigo AS codigo_acceso FROM personas_ingreso p " +
                 "INNER JOIN accesos a ON p.id_acceso = a.id_acceso " +
                 "WHERE p.compro = 0"
@@ -271,6 +271,14 @@ class RinconSurDbHelper(context: Context) :
         if (colorAbajo != null) {
             sql += " AND p.color_ropa_abajo = ?"
             args.add(colorAbajo)
+        }
+        if (idAcceso != null) {
+            sql += " AND p.fecha_hora LIKE ?"
+            args.add(idAcceso.toString())
+        }
+        if (fecha != null) {
+            sql += " AND p.fecha_hora LIKE ?"
+            args.add("$fecha%")
         }
         sql += " ORDER BY p.fecha_hora DESC"
 

@@ -11,6 +11,11 @@ object Fechas {
 
     fun hoy(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
+    fun ayer(): String {
+        val calendario = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -1) }
+        return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendario.time)
+    }
+
     fun manana(): String {
         val calendario = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, 1) }
         return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendario.time)
