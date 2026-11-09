@@ -1,6 +1,7 @@
 package com.example.rentail_conteo.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,9 +13,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -27,15 +34,21 @@ import com.example.rentail_conteo.model.Usuario
 import com.example.rentail_conteo.ui.components.Boton
 import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.viewmodel.LoginViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
     onIngreso: (Usuario) -> Unit,
+    onRecuperarPasswordClick: () -> Unit,
     viewModel: LoginViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    Scaffold { innerPadding ->
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -45,17 +58,17 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("FlujoSur", style = MaterialTheme.typography.headlineLarge)
-            Text("Ingresa con tu cuenta de colaborador", style = MaterialTheme.typography.bodyMedium)
+            Text("Ingresa con tu correo corporativo", style = MaterialTheme.typography.bodyMedium)
 
             Spacer(Modifier.height(Dimens.espacioGrande))
 
             OutlinedTextField(
-                value = uiState.rut,
-                onValueChange = { viewModel.onRutCambia(it) },
-                label = { Text("RUT (ej: 15234871-1)") },
-                leadingIcon = { Icon(painterResource(R.drawable.ic_persona), contentDescription = null) },
-                isError = uiState.errorRut != null,
-                supportingText = { uiState.errorRut?.let { Text(it) } },
+                value = uiState.correo,
+                onValueChange = { viewModel.onCorreoCambia(it) },
+                label = { Text("Correo (ej: nombre@rinconsur.cl)") },
+                leadingIcon = { Icon(painterResource(R.drawable.ic_correo), contentDescription = null) },
+                isError = uiState.errorCorreo != null,
+                supportingText = { uiState.errorCorreo?.let { Text(it) } },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -72,12 +85,37 @@ fun LoginScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth()
             )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Dimens.espacioChico),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                TextButton(onClick = onRecuperarPasswordClick) {
+                    Text(
+                        text = "¿Olvidaste tu contraseña?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
 
             Spacer(Modifier.height(Dimens.espacioMedio))
 
             Boton(
                 texto = "Ingresar",
-                onClick = { viewModel.onIngresar()?.let(onIngreso) },
+                onClick = {
+                    val usuario = viewModel.onIngresar()
+                    if (usuario != null) {
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "Haz iniciado sesión con éxito. Bienbenid@ ${usuario.nombre}",
+                                duration = SnackbarDuration.Short
+                            )
+                            onIngreso(usuario)
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
         }

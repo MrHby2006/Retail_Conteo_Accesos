@@ -12,6 +12,7 @@ data class Usuario(
     val codigo: String,
     val nombre: String,
     val rut: String,
+    val correo: String,
     val cargo: String,
     val rolId: Long
 ) {

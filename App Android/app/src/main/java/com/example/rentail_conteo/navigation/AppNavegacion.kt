@@ -39,7 +39,14 @@ fun AppNavegacion() {
                     navController.navigate(rutaInicial(usuarioIngresado)) {
                         popUpTo(Ruta.Login.ruta) { inclusive = true }
                     }
-                }
+                },
+                onRecuperarPasswordClick = { navController.navigate(Ruta.RecuperarContrasena.ruta) }
+            )
+        }
+
+        composable(Ruta.RecuperarContrasena.ruta) {
+            Ruta.RecuperarContrasenaScreen(
+                onVolver = { navController.popBackStack() }
             )
         }
 

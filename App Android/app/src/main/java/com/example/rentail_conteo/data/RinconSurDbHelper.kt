@@ -36,6 +36,7 @@ class RinconSurDbHelper(context: Context) :
                     "codigo TEXT NOT NULL UNIQUE, " +
                     "nombre TEXT NOT NULL, " +
                     "rut TEXT NOT NULL UNIQUE, " +
+                    "correo TEXT NOT NULL UNIQUE, " +
                     "contrasena TEXT NOT NULL, " +
                     "cargo TEXT NOT NULL, " +
                     "activo INTEGER NOT NULL DEFAULT 1, " +
@@ -94,20 +95,20 @@ class RinconSurDbHelper(context: Context) :
                     "(1, 'Jefatura'), (2, 'Supervisor de piso'), (3, 'Observador'), (4, 'Cajero')"
 
         private const val SQL_PRECARGAR_USUARIOS =
-            "INSERT INTO usuarios (codigo, nombre, rut, contrasena, cargo, id_rol) VALUES " +
-                    "('C-01', 'Carolina Fuentes Araya', '152348711', '123456', 'Jefa de tienda', 1), " +
-                    "('C-02', 'Rodrigo Saavedra Muñoz', '139874420', '123456', 'Subgerente comercial', 1), " +
-                    "('C-03', 'Daniela Pizarro Toro', '176543205', '123456', 'Supervisora de piso (mañana)', 2), " +
-                    "('C-04', 'Matías Contreras Vidal', '164430197', '123456', 'Supervisor de piso (tarde)', 2), " +
-                    "('C-05', 'Tamara Rojas Espinoza', '198763454', '123456', 'Vendedora, Vestuario Mujer', 3), " +
-                    "('C-06', 'Felipe Ibarra Soto', '201456789', '123456', 'Vendedor, Hogar y Deco', 3), " +
-                    "('C-07', 'Javiera Morales Cáceres', '183229044', '123456', 'Cajera, Cajas Centrales', 4)"
+            "INSERT INTO usuarios (codigo, nombre, rut, correo, contrasena, cargo, id_rol) VALUES " +
+                    "('C-01', 'Carolina Fuentes Araya', '152348711', 'carolina@rinconsur.cl', '123456', 'Jefa de tienda', 1), " +
+                    "('C-02', 'Rodrigo Saavedra Muñoz', '139874420', 'rodrigo@rinconsur.cl', '123456', 'Subgerente comercial', 1), " +
+                    "('C-03', 'Daniela Pizarro Toro', '176543205', 'daniela@rinconsur.cl', '123456', 'Supervisora de piso (mañana)', 2), " +
+                    "('C-04', 'Matías Contreras Vidal', '164430197', 'matias@rinconsur.cl', '123456', 'Supervisor de piso (tarde)', 2), " +
+                    "('C-05', 'Tamara Rojas Espinoza', '198763454', 'tamara@rinconsur.cl', '123456', 'Vendedora, Vestuario Mujer', 3), " +
+                    "('C-06', 'Felipe Ibarra Soto', '201456789', 'felipe@rinconsur.cl', '123456', 'Vendedor, Hogar y Deco', 3), " +
+                    "('C-07', 'Javiera Morales Cáceres', '183229044', 'javiera@rinconsur.cl', '123456', 'Cajera, Cajas Centrales', 4)"
 
         private const val SQL_PRECARGAR_TRABAJADORES_NUEVOS =
-            "INSERT INTO usuarios (codigo, nombre, rut, contrasena, cargo, id_rol) VALUES " +
-                    "('C-08','Ignacio Navarro Pérez', '178902342', '123456', 'Vendedor, Deportes', 3), " +
-                    "('C-09', 'Valentina Reyes Lagos', '203451180', '123456', 'Cajera, Cajas Centrales', 4), " +
-                    "('C-10', 'Sebastián Castillo Mora', '167894550', '123456', 'Vendedor, Electro', 3)"
+            "INSERT INTO usuarios (codigo, nombre, rut, correo, contrasena, cargo, id_rol) VALUES " +
+                    "('C-08','Ignacio Navarro Pérez', '178902342', 'ignacio@rinconsur.cl', '123456', 'Vendedor, Deportes', 3), " +
+                    "('C-09', 'Valentina Reyes Lagos', '203451180', 'valentina@rinconsur.cl', '123456', 'Cajera, Cajas Centrales', 4), " +
+                    "('C-10', 'Sebastián Castillo Mora', '167894550', 'sebastian@rinconsur.cl', '123456', 'Vendedor, Electro', 3)"
 
         private const val SQL_PRECARGAR_ACCESOS =
             "INSERT INTO accesos (id_acceso, codigo, nombre, ubicacion) VALUES " +
@@ -187,11 +188,11 @@ class RinconSurDbHelper(context: Context) :
         }
     }
 
-    fun buscarUsuarioParaLogin(rut: String, contrasena: String): Usuario? {
+    fun buscarUsuarioParaLogin(correo: String, contrasena: String): Usuario? {
         var usuario: Usuario? = null
         readableDatabase.rawQuery(
-            "SELECT * FROM usuarios WHERE rut = ? AND contrasena = ? AND activo = 1",
-            arrayOf(rut, contrasena)
+            "SELECT * FROM usuarios WHERE correo = ? AND contrasena = ? AND activo = 1",
+            arrayOf(correo.trim().lowercase(), contrasena)
         ).use { cursor ->
             if (cursor.moveToFirst()) usuario = leerUsuario(cursor)
         }
@@ -471,11 +472,23 @@ class RinconSurDbHelper(context: Context) :
         return lista
     }
 
+    fun existeCorreo(correo: String): Boolean {
+        var existe = false
+        readableDatabase.rawQuery(
+            "SELECT 1 FROM usuarios WHERE correo = ? AND activo = 1",
+            arrayOf(correo.trim().lowercase())
+        ).use { cursor ->
+            existe = cursor.moveToFirst()
+        }
+        return existe
+    }
+
     private fun leerUsuario(c: Cursor) = Usuario(
         id = c.getLong(c.getColumnIndexOrThrow("id_usuario")),
         codigo = c.getString(c.getColumnIndexOrThrow("codigo")),
         nombre = c.getString(c.getColumnIndexOrThrow("nombre")),
         rut = c.getString(c.getColumnIndexOrThrow("rut")),
+        correo = c.getString(c.getColumnIndexOrThrow("correo")),
         cargo = c.getString(c.getColumnIndexOrThrow("cargo")),
         rolId = c.getLong(c.getColumnIndexOrThrow("id_rol"))
     )
