@@ -22,7 +22,10 @@ class PortonViewModel(application: Application) : AndroidViewModel(application) 
     fun cargarTurno(idObservador: Long) {
         val turno = db.turnoDeHoy(idObservador, Fechas.hoy()) ?: return
         _uiState.update { it.copy(turnoHoy = "${turno.franja} · ${turno.puestoLegible()}") }
-        _uiState.value.accesos.firstOrNull { it.codigo == turno.puesto }?.let { onAccesoElegido(it) }
+        _uiState.value.accesos.firstOrNull { it.codigo == turno.puesto }?.let {
+            onAccesoElegido(it)
+            _uiState.update { estado -> estado.copy(accesoFijo = true) }
+        }
     }
 
     fun onAccesoElegido(acceso: AccesoItem) {
@@ -101,6 +104,7 @@ class PortonViewModel(application: Application) : AndroidViewModel(application) 
                 accesos = it.accesos,
                 turnoHoy = it.turnoHoy,
                 accesoElegido = acceso,
+                accesoFijo = it.accesoFijo,
                 registradosHoy = db.contarIngresosDeHoy(acceso.id.toLong(), Fechas.hoy()),
                 mensaje = "Ingreso registrado en ${acceso.codigo}"
             )

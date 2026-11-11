@@ -8,15 +8,17 @@ import android.database.sqlite.SQLiteOpenHelper
 import com.example.rentail_conteo.model.AccesoItem
 import com.example.rentail_conteo.model.FilaIndicador
 import com.example.rentail_conteo.model.PersonaIngreso
+import com.example.rentail_conteo.model.SolicitudCambio
 import com.example.rentail_conteo.model.Turno
 import com.example.rentail_conteo.model.Usuario
 import com.example.rentail_conteo.util.Fechas
+import com.example.rentail_conteo.util.Seguridad
 
 class RinconSurDbHelper(context: Context) :
     SQLiteOpenHelper(context, NOMBRE_BD, null, VERSION_BD) {
     companion object {
         private const val NOMBRE_BD = "rinconsur.db"
-        private const val VERSION_BD = 5
+        private const val VERSION_BD = 6
 
         @Volatile private var instancia: RinconSurDbHelper? = null
 
@@ -40,7 +42,10 @@ class RinconSurDbHelper(context: Context) :
                     "contrasena TEXT NOT NULL, " +
                     "cargo TEXT NOT NULL, " +
                     "activo INTEGER NOT NULL DEFAULT 1, " +
-                    "id_rol INTEGER NOT NULL REFERENCES roles(id_rol))"
+                    "id_rol INTEGER NOT NULL REFERENCES roles(id_rol), " +
+                    "correo_personal TEXT, " +
+                    "sal TEXT NOT NULL DEFAULT '', " +
+                    "debe_cambiar_contrasena INTEGER NOT NULL DEFAULT 0)"
 
         private const val SQL_CREAR_ACCESOS =
             "CREATE TABLE accesos (" +
@@ -87,12 +92,58 @@ class RinconSurDbHelper(context: Context) :
                     "puesto TEXT NOT NULL, " +
                     "UNIQUE (id_usuario, fecha, franja))"
 
+        private const val SQL_AGREGAR_ESTADO_TURNOS =
+            "ALTER TABLE turnos ADD COLUMN estado TEXT NOT NULL DEFAULT 'PUBLICADO'"
+
+        private const val SQL_CREAR_SOLICITUDES =
+            "CREATE TABLE solicitudes_cambio (" +
+                    "id_solicitud INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "id_turno INTEGER NOT NULL REFERENCES turnos(id_turno), " +
+                    "id_supervisor INTEGER NOT NULL REFERENCES usuarios(id_usuario), " +
+                    "id_usuario_nuevo INTEGER NOT NULL REFERENCES usuarios(id_usuario), " +
+                    "franja_nueva TEXT NOT NULL, " +
+                    "puesto_nuevo TEXT NOT NULL, " +
+                    "acepta_titular INTEGER NOT NULL DEFAULT 0, " +
+                    "acepta_nuevo INTEGER NOT NULL DEFAULT 0, " +
+                    "estado TEXT NOT NULL DEFAULT 'PENDIENTE', " +
+                    "fecha_creacion TEXT NOT NULL)"
+
+        private const val SQL_AGREGAR_CORREO_PERSONAL =
+            "ALTER TABLE usuarios ADD COLUMN correo_personal TEXT"
+
+        private const val SQL_AGREGAR_SAL =
+            "ALTER TABLE usuarios ADD COLUMN sal TEXT NOT NULL DEFAULT ''"
+
+        private const val SQL_AGREGAR_DEBE_CAMBIAR =
+            "ALTER TABLE usuarios ADD COLUMN debe_cambiar_contrasena INTEGER NOT NULL DEFAULT 0"
+
+        private const val SQL_UNIR_OBSERVADOR_Y_CAJERO = "UPDATE usuarios SET id_rol = 3 WHERE id_rol = 4"
+
+        private const val SQL_BORRAR_ROL_CAJERO = "DELETE FROM roles WHERE id_rol = 4"
+
+        private const val SQL_RENOMBRAR_ADMINISTRADOR = "UPDATE roles SET nombre_rol = 'Administrador' WHERE id_rol = 1"
+
+        private const val SQL_RENOMBRAR_TRABAJADOR = "UPDATE roles SET nombre_rol = 'Trabajador' WHERE id_rol = 3"
+
+        private const val SELECT_TURNOS =
+            "SELECT t.*, u.nombre AS nombre_trabajador, " +
+                    "(SELECT COUNT(*) FROM solicitudes_cambio s WHERE s.id_turno = t.id_turno AND s.estado = 'PENDIENTE') AS cambios_pendientes " +
+                    "FROM turnos t INNER JOIN usuarios u ON t.id_usuario = u.id_usuario "
+
+        private const val SELECT_SOLICITUDES =
+            "SELECT s.*, t.fecha, t.franja, t.puesto, t.id_usuario AS id_titular, " +
+                    "ut.nombre AS nombre_titular, un.nombre AS nombre_nuevo " +
+                    "FROM solicitudes_cambio s " +
+                    "INNER JOIN turnos t ON s.id_turno = t.id_turno " +
+                    "INNER JOIN usuarios ut ON t.id_usuario = ut.id_usuario " +
+                    "INNER JOIN usuarios un ON s.id_usuario_nuevo = un.id_usuario "
+
         private const val SQL_AGREGAR_COLOR_ABAJO =
             "ALTER TABLE personas_ingreso ADD COLUMN color_ropa_abajo TEXT NOT NULL DEFAULT ''"
 
         private const val SQL_PRECARGAR_ROLES =
             "INSERT INTO roles (id_rol, nombre_rol) VALUES " +
-                    "(1, 'Jefatura'), (2, 'Supervisor de piso'), (3, 'Observador'), (4, 'Cajero')"
+                    "(1, 'Administrador'), (2, 'Supervisor de piso'), (3, 'Trabajador')"
 
         private const val SQL_PRECARGAR_USUARIOS =
             "INSERT INTO usuarios (codigo, nombre, rut, correo, contrasena, cargo, id_rol) VALUES " +
@@ -102,12 +153,12 @@ class RinconSurDbHelper(context: Context) :
                     "('C-04', 'Matías Contreras Vidal', '164430197', 'matias@rinconsur.cl', '123456', 'Supervisor de piso (tarde)', 2), " +
                     "('C-05', 'Tamara Rojas Espinoza', '198763454', 'tamara@rinconsur.cl', '123456', 'Vendedora, Vestuario Mujer', 3), " +
                     "('C-06', 'Felipe Ibarra Soto', '201456789', 'felipe@rinconsur.cl', '123456', 'Vendedor, Hogar y Deco', 3), " +
-                    "('C-07', 'Javiera Morales Cáceres', '183229044', 'javiera@rinconsur.cl', '123456', 'Cajera, Cajas Centrales', 4)"
+                    "('C-07', 'Javiera Morales Cáceres', '183229044', 'javiera@rinconsur.cl', '123456', 'Cajera, Cajas Centrales', 3)"
 
         private const val SQL_PRECARGAR_TRABAJADORES_NUEVOS =
             "INSERT INTO usuarios (codigo, nombre, rut, correo, contrasena, cargo, id_rol) VALUES " +
                     "('C-08','Ignacio Navarro Pérez', '178902342', 'ignacio@rinconsur.cl', '123456', 'Vendedor, Deportes', 3), " +
-                    "('C-09', 'Valentina Reyes Lagos', '203451180', 'valentina@rinconsur.cl', '123456', 'Cajera, Cajas Centrales', 4), " +
+                    "('C-09', 'Valentina Reyes Lagos', '203451180', 'valentina@rinconsur.cl', '123456', 'Cajera, Cajas Centrales', 3), " +
                     "('C-10', 'Sebastián Castillo Mora', '167894550', 'sebastian@rinconsur.cl', '123456', 'Vendedor, Electro', 3)"
 
         private const val SQL_PRECARGAR_ACCESOS =
@@ -160,6 +211,8 @@ class RinconSurDbHelper(context: Context) :
         db.execSQL(SQL_CREAR_PERSONAS)
         db.execSQL(SQL_CREAR_COMPRAS)
         db.execSQL(SQL_CREAR_TURNOS)
+        db.execSQL(SQL_AGREGAR_ESTADO_TURNOS)
+        db.execSQL(SQL_CREAR_SOLICITUDES)
 
         db.execSQL(SQL_PRECARGAR_ROLES)
         db.execSQL(SQL_PRECARGAR_USUARIOS)
@@ -171,9 +224,12 @@ class RinconSurDbHelper(context: Context) :
         val hoy = Fechas.hoy()
         db.execSQL(
             "INSERT INTO turnos (id_usuario, id_supervisor, fecha, franja, puesto) VALUES " +
-                    "(5, 3, ?, 'Mañana', 'A4'), (7, 3, ?, 'Mañana', 'CAJA')",
-            arrayOf(hoy, hoy)
+                    "(5, 3, ?, 'Mañana', 'A4'), (7, 3, ?, 'Mañana', 'CAJA'), " +
+                    "(6, 4, ?, 'Tarde', 'A1'), (9, 4, ?, 'Tarde', 'CAJA')",
+            arrayOf(hoy, hoy, hoy, hoy)
         )
+
+        protegerContrasenas(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -186,15 +242,46 @@ class RinconSurDbHelper(context: Context) :
         if (oldVersion < 4) {
             db.execSQL(SQL_AGREGAR_COLOR_ABAJO)
         }
+        if (oldVersion < 6) {
+            db.execSQL(SQL_AGREGAR_CORREO_PERSONAL)
+            db.execSQL(SQL_AGREGAR_SAL)
+            db.execSQL(SQL_AGREGAR_DEBE_CAMBIAR)
+            db.execSQL(SQL_UNIR_OBSERVADOR_Y_CAJERO)
+            db.execSQL(SQL_BORRAR_ROL_CAJERO)
+            db.execSQL(SQL_RENOMBRAR_ADMINISTRADOR)
+            db.execSQL(SQL_RENOMBRAR_TRABAJADOR)
+            db.execSQL(SQL_AGREGAR_ESTADO_TURNOS)
+            db.execSQL(SQL_CREAR_SOLICITUDES)
+            protegerContrasenas(db)
+        }
+    }
+
+    private fun protegerContrasenas(db: SQLiteDatabase) {
+        val pendientes = mutableListOf<Pair<Long, String>>()
+        db.rawQuery("SELECT id_usuario, contrasena FROM usuarios WHERE sal = ''", null).use { cursor ->
+            while (cursor.moveToNext()) pendientes.add(cursor.getLong(0) to cursor.getString(1))
+        }
+        pendientes.forEach { (id, contrasena) ->
+            val sal = Seguridad.nuevaSal()
+            val valores = ContentValues().apply {
+                put("sal", sal)
+                put("contrasena", Seguridad.hash(contrasena, sal))
+            }
+            db.update("usuarios", valores, "id_usuario = ?", arrayOf(id.toString()))
+        }
     }
 
     fun buscarUsuarioParaLogin(correo: String, contrasena: String): Usuario? {
         var usuario: Usuario? = null
         readableDatabase.rawQuery(
-            "SELECT * FROM usuarios WHERE correo = ? AND contrasena = ? AND activo = 1",
-            arrayOf(correo.trim().lowercase(), contrasena)
+            "SELECT * FROM usuarios WHERE correo = ? AND activo = 1",
+            arrayOf(correo.trim().lowercase())
         ).use { cursor ->
-            if (cursor.moveToFirst()) usuario = leerUsuario(cursor)
+            if (cursor.moveToFirst()) {
+                val sal = cursor.getString(cursor.getColumnIndexOrThrow("sal"))
+                val hashGuardado = cursor.getString(cursor.getColumnIndexOrThrow("contrasena"))
+                if (Seguridad.coincide(contrasena, sal, hashGuardado)) usuario = leerUsuario(cursor)
+            }
         }
         return usuario
     }
@@ -320,7 +407,7 @@ class RinconSurDbHelper(context: Context) :
     fun listarTrabajadores(): List<Usuario> {
         val lista = mutableListOf<Usuario>()
         readableDatabase.rawQuery(
-            "SELECT * FROM usuarios WHERE activo = 1 AND id_rol IN (3, 4) ORDER BY nombre", null
+            "SELECT * FROM usuarios WHERE activo = 1 AND id_rol = 3 ORDER BY nombre", null
         ).use { cursor ->
             while (cursor.moveToNext()) lista.add(leerUsuario(cursor))
         }
@@ -330,15 +417,48 @@ class RinconSurDbHelper(context: Context) :
     fun listarTurnos(fecha: String): List<Turno> {
         val lista = mutableListOf<Turno>()
         readableDatabase.rawQuery(
-            "SELECT t.*, u.nombre AS nombre_trabajador FROM turnos t " +
-                    "INNER JOIN usuarios u ON t.id_usuario = u.id_usuario " +
-                    "WHERE t.fecha = ? ORDER BY t.franja, t.puesto",
+            SELECT_TURNOS + "WHERE t.fecha = ? ORDER BY t.franja, t.puesto",
             arrayOf(fecha)
         ).use { cursor ->
             while (cursor.moveToNext()) lista.add(leerTurno(cursor))
         }
         return lista
     }
+
+    fun listarTurnosPublicados(desde: String, hasta: String): List<Turno> {
+        val lista = mutableListOf<Turno>()
+        readableDatabase.rawQuery(
+            SELECT_TURNOS + "WHERE t.fecha BETWEEN ? AND ? AND t.estado = 'PUBLICADO' " +
+                    "ORDER BY t.fecha, t.franja, t.puesto",
+            arrayOf(desde, hasta)
+        ).use { cursor ->
+            while (cursor.moveToNext()) lista.add(leerTurno(cursor))
+        }
+        return lista
+    }
+
+    fun contarBorradores(desde: String, hasta: String): Int {
+        var total = 0
+        readableDatabase.rawQuery(
+            "SELECT COUNT(*) FROM turnos WHERE fecha BETWEEN ? AND ? AND estado = 'BORRADOR'",
+            arrayOf(desde, hasta)
+        ).use { cursor ->
+            if (cursor.moveToFirst()) total = cursor.getInt(0)
+        }
+        return total
+    }
+
+    fun publicarTurnos(desde: String, hasta: String): Int {
+        val valores = ContentValues().apply { put("estado", Turno.ESTADO_PUBLICADO) }
+        return writableDatabase.update(
+            "turnos", valores, "fecha BETWEEN ? AND ? AND estado = 'BORRADOR'", arrayOf(desde, hasta)
+        )
+    }
+
+    fun borrarTurnoBorrador(idTurno: Long): Boolean =
+        writableDatabase.delete(
+            "turnos", "id_turno = ? AND estado = 'BORRADOR'", arrayOf(idTurno.toString())
+        ) == 1
 
     fun insertarTurno(idUsuario: Long, idSupervisor: Long, fecha: String, franja: String, puesto: String): Long {
         val valores = ContentValues().apply {
@@ -347,6 +467,7 @@ class RinconSurDbHelper(context: Context) :
             put("fecha", fecha)
             put("franja", franja)
             put("puesto", puesto)
+            put("estado", Turno.ESTADO_BORRADOR)
         }
         return writableDatabase.insert("turnos", null, valores)
     }
@@ -360,12 +481,14 @@ class RinconSurDbHelper(context: Context) :
         return writableDatabase.update("turnos", valores, "id_turno = ?", arrayOf(idTurno.toString())) == 1
     }
 
-    fun turnoDeHoy(idUsuario: Long, hoy: String): Turno? {
+    fun turnoDeHoy(idUsuario: Long, hoy: String): Turno? =
+        turnosDeHoy(idUsuario, hoy).firstOrNull { !it.yaTermino() }
+
+    fun proximoTurno(idUsuario: Long, hoy: String): Turno? {
         var turno: Turno? = null
         readableDatabase.rawQuery(
-            "SELECT t.*, u.nombre AS nombre_trabajador FROM turnos t " +
-                    "INNER JOIN usuarios u ON t.id_usuario = u.id_usuario " +
-                    "WHERE t.id_usuario = ? AND t.fecha = ? ORDER BY t.franja",
+            SELECT_TURNOS + "WHERE t.id_usuario = ? AND t.fecha > ? AND t.estado = 'PUBLICADO' " +
+                    "ORDER BY t.fecha, t.franja LIMIT 1",
             arrayOf(idUsuario.toString(), hoy)
         ).use { cursor ->
             if (cursor.moveToFirst()) turno = leerTurno(cursor)
@@ -378,7 +501,7 @@ class RinconSurDbHelper(context: Context) :
         readableDatabase.rawQuery(
             "SELECT t.*, u.nombre AS nombre_trabajador FROM turnos t " +
                     "INNER JOIN usuarios u ON t.id_usuario = u.id_usuario " +
-                    "WHERE t.id_usuario = ? AND t.fecha = ? ORDER BY t.franja",
+                    "WHERE t.id_usuario = ? AND t.fecha = ? AND t.estado = 'PUBLICADO' ORDER BY t.franja",
             arrayOf(idUsuario.toString(), hoy)
         ).use { cursor ->
             while (cursor.moveToNext()) lista.add(leerTurno(cursor))
@@ -403,12 +526,211 @@ class RinconSurDbHelper(context: Context) :
         readableDatabase.rawQuery(
             "SELECT t.*, u.nombre AS nombre_trabajador FROM turnos t " +
                     "INNER JOIN usuarios u ON t.id_usuario = u.id_usuario " +
-                    "WHERE t.puesto = ? AND t.fecha = ? AND t.franja = ?",
+                    "WHERE t.puesto = ? AND t.fecha = ? AND t.franja = ? AND t.estado = 'PUBLICADO'",
             arrayOf(puesto, fecha, franja)
         ).use { cursor ->
             if (cursor.moveToFirst()) turno = leerTurno(cursor)
         }
         return turno
+    }
+
+    fun crearSolicitudCambio(
+        idTurno: Long, idSupervisor: Long, idUsuarioNuevo: Long, franjaNueva: String, puestoNuevo: String
+    ): Long {
+        val valores = ContentValues().apply {
+            put("id_turno", idTurno)
+            put("id_supervisor", idSupervisor)
+            put("id_usuario_nuevo", idUsuarioNuevo)
+            put("franja_nueva", franjaNueva)
+            put("puesto_nuevo", puestoNuevo)
+            put("estado", SolicitudCambio.PENDIENTE)
+            put("fecha_creacion", Fechas.ahora())
+        }
+        return writableDatabase.insert("solicitudes_cambio", null, valores)
+    }
+
+    fun solicitudesPendientesPara(idUsuario: Long, hoy: String): List<SolicitudCambio> {
+        val lista = mutableListOf<SolicitudCambio>()
+        readableDatabase.rawQuery(
+            SELECT_SOLICITUDES +
+                    "WHERE s.estado = 'PENDIENTE' AND t.fecha >= ? AND " +
+                    "((t.id_usuario = ? AND s.acepta_titular = 0) OR (s.id_usuario_nuevo = ? AND s.acepta_nuevo = 0)) " +
+                    "ORDER BY t.fecha",
+            arrayOf(hoy, idUsuario.toString(), idUsuario.toString())
+        ).use { cursor ->
+            while (cursor.moveToNext()) lista.add(leerSolicitud(cursor))
+        }
+        return lista
+    }
+
+    private fun buscarSolicitud(db: SQLiteDatabase, idSolicitud: Long): SolicitudCambio? {
+        var solicitud: SolicitudCambio? = null
+        db.rawQuery(SELECT_SOLICITUDES + "WHERE s.id_solicitud = ?", arrayOf(idSolicitud.toString())).use { cursor ->
+            if (cursor.moveToFirst()) solicitud = leerSolicitud(cursor)
+        }
+        return solicitud
+    }
+
+    fun responderSolicitud(idSolicitud: Long, idUsuario: Long, acepta: Boolean): String {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            val solicitud = buscarSolicitud(db, idSolicitud) ?: return "La solicitud ya no existe"
+            val id = arrayOf(idSolicitud.toString())
+
+            if (!acepta) {
+                db.update("solicitudes_cambio", ContentValues().apply { put("estado", SolicitudCambio.RECHAZADA) }, "id_solicitud = ?", id)
+                db.setTransactionSuccessful()
+                return "Rechazaste el cambio. El turno queda como estaba"
+            }
+
+            val aceptaTitular = solicitud.aceptaTitular || idUsuario == solicitud.idTitular
+            val aceptaNuevo = solicitud.aceptaNuevo || idUsuario == solicitud.idNuevo || !solicitud.cambiaPersona
+            db.update(
+                "solicitudes_cambio",
+                ContentValues().apply {
+                    put("acepta_titular", if (aceptaTitular) 1 else 0)
+                    put("acepta_nuevo", if (aceptaNuevo) 1 else 0)
+                },
+                "id_solicitud = ?", id
+            )
+
+            if (!aceptaTitular || !aceptaNuevo) {
+                db.setTransactionSuccessful()
+                val falta = if (!aceptaTitular) solicitud.nombreTitular else solicitud.nombreNuevo
+                return "Aceptaste. Falta que ${falta.substringBefore(" ")} acepte para aplicar el cambio"
+            }
+
+            val choque = choqueDelCambio(db, solicitud)
+            if (choque != null) {
+                db.update("solicitudes_cambio", ContentValues().apply { put("estado", SolicitudCambio.RECHAZADA) }, "id_solicitud = ?", id)
+                db.setTransactionSuccessful()
+                return "No se pudo aplicar el cambio: $choque"
+            }
+
+            db.update(
+                "turnos",
+                ContentValues().apply {
+                    put("id_usuario", solicitud.idNuevo)
+                    put("franja", solicitud.franjaNueva)
+                    put("puesto", solicitud.puestoNuevo)
+                },
+                "id_turno = ?", arrayOf(solicitud.idTurno.toString())
+            )
+            db.update("solicitudes_cambio", ContentValues().apply { put("estado", SolicitudCambio.ACEPTADA) }, "id_solicitud = ?", id)
+            db.setTransactionSuccessful()
+            return "Cambio aceptado por ambos. El turno ya quedó actualizado"
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    private fun choqueDelCambio(db: SQLiteDatabase, solicitud: SolicitudCambio): String? {
+        var choque: String? = null
+        db.rawQuery(
+            "SELECT id_usuario, puesto FROM turnos WHERE fecha = ? AND franja = ? AND id_turno <> ?",
+            arrayOf(solicitud.fecha, solicitud.franjaNueva, solicitud.idTurno.toString())
+        ).use { cursor ->
+            while (cursor.moveToNext() && choque == null) {
+                val idUsuario = cursor.getLong(0)
+                val puesto = cursor.getString(1)
+                if (idUsuario == solicitud.idNuevo) {
+                    choque = "${solicitud.nombreNuevo.substringBefore(" ")} ya tiene otro turno en esa franja"
+                } else if (puesto == solicitud.puestoNuevo && puesto != Turno.PUESTO_CAJA) {
+                    choque = "la puerta $puesto ya tiene a alguien en esa franja"
+                }
+            }
+        }
+        return choque
+    }
+
+    fun listarEmpleados(): List<Usuario> {
+        val lista = mutableListOf<Usuario>()
+        readableDatabase.rawQuery("SELECT * FROM usuarios WHERE activo = 1 ORDER BY id_rol, nombre", null).use { cursor ->
+            while (cursor.moveToNext()) lista.add(leerUsuario(cursor))
+        }
+        return lista
+    }
+
+    private fun existe(sql: String, valor: String): Boolean {
+        var existe = false
+        readableDatabase.rawQuery(sql, arrayOf(valor)).use { cursor -> existe = cursor.moveToFirst() }
+        return existe
+    }
+
+    fun rutEnUso(rutLimpio: String): Boolean = existe("SELECT 1 FROM usuarios WHERE rut = ?", rutLimpio)
+
+    fun correoEmpresaEnUso(correo: String): Boolean =
+        existe("SELECT 1 FROM usuarios WHERE correo = ?", correo.trim().lowercase())
+
+    fun correoPersonalEnUso(correo: String): Boolean =
+        existe("SELECT 1 FROM usuarios WHERE correo_personal = ?", correo.trim().lowercase())
+
+    private fun siguienteCodigo(): String {
+        var mayor = 0
+        readableDatabase.rawQuery("SELECT codigo FROM usuarios", null).use { cursor ->
+            while (cursor.moveToNext()) {
+                val numero = cursor.getString(0).substringAfter("C-").toIntOrNull() ?: 0
+                if (numero > mayor) mayor = numero
+            }
+        }
+        return "C-%02d".format(mayor + 1)
+    }
+
+    fun insertarEmpleado(
+        nombre: String, rutLimpio: String, correoEmpresa: String, correoPersonal: String,
+        cargo: String, rolId: Long, contrasenaTemporal: String
+    ): Long {
+        val sal = Seguridad.nuevaSal()
+        val valores = ContentValues().apply {
+            put("codigo", siguienteCodigo())
+            put("nombre", nombre.trim())
+            put("rut", rutLimpio)
+            put("correo", correoEmpresa)
+            put("correo_personal", correoPersonal.trim().lowercase())
+            put("cargo", cargo.trim())
+            put("id_rol", rolId)
+            put("sal", sal)
+            put("contrasena", Seguridad.hash(contrasenaTemporal, sal))
+            put("debe_cambiar_contrasena", 1)
+        }
+        return writableDatabase.insert("usuarios", null, valores)
+    }
+
+    fun contarTurnosDesde(idUsuario: Long, desde: String): Int {
+        var total = 0
+        readableDatabase.rawQuery(
+            "SELECT COUNT(*) FROM turnos WHERE id_usuario = ? AND fecha >= ?",
+            arrayOf(idUsuario.toString(), desde)
+        ).use { cursor ->
+            if (cursor.moveToFirst()) total = cursor.getInt(0)
+        }
+        return total
+    }
+
+    fun desactivarEmpleado(idUsuario: Long): Boolean {
+        val valores = ContentValues().apply { put("activo", 0) }
+        return writableDatabase.update("usuarios", valores, "id_usuario = ?", arrayOf(idUsuario.toString())) == 1
+    }
+
+    fun contrasenaCoincide(idUsuario: Long, contrasena: String): Boolean {
+        var coincide = false
+        readableDatabase.rawQuery(
+            "SELECT sal, contrasena FROM usuarios WHERE id_usuario = ?", arrayOf(idUsuario.toString())
+        ).use { cursor ->
+            if (cursor.moveToFirst()) coincide = Seguridad.coincide(contrasena, cursor.getString(0), cursor.getString(1))
+        }
+        return coincide
+    }
+
+    fun cambiarContrasena(idUsuario: Long, nueva: String): Boolean {
+        val sal = Seguridad.nuevaSal()
+        val valores = ContentValues().apply {
+            put("sal", sal)
+            put("contrasena", Seguridad.hash(nueva, sal))
+            put("debe_cambiar_contrasena", 0)
+        }
+        return writableDatabase.update("usuarios", valores, "id_usuario = ?", arrayOf(idUsuario.toString())) == 1
     }
 
     private fun agruparPor(columna: String, idAcceso: Long?, fechaPrefijo: String?): List<FilaIndicador> {
@@ -490,16 +812,39 @@ class RinconSurDbHelper(context: Context) :
         rut = c.getString(c.getColumnIndexOrThrow("rut")),
         correo = c.getString(c.getColumnIndexOrThrow("correo")),
         cargo = c.getString(c.getColumnIndexOrThrow("cargo")),
-        rolId = c.getLong(c.getColumnIndexOrThrow("id_rol"))
+        rolId = c.getLong(c.getColumnIndexOrThrow("id_rol")),
+        correoPersonal = c.getString(c.getColumnIndexOrThrow("correo_personal")),
+        debeCambiarContrasena = c.getInt(c.getColumnIndexOrThrow("debe_cambiar_contrasena")) == 1
     )
 
-    private fun leerTurno(c: Cursor) = Turno(
-        id = c.getLong(c.getColumnIndexOrThrow("id_turno")),
-        idUsuario = c.getLong(c.getColumnIndexOrThrow("id_usuario")),
-        nombreTrabajador = c.getString(c.getColumnIndexOrThrow("nombre_trabajador")),
+    private fun leerTurno(c: Cursor): Turno {
+        val columnaPendientes = c.getColumnIndex("cambios_pendientes")
+        return Turno(
+            id = c.getLong(c.getColumnIndexOrThrow("id_turno")),
+            idUsuario = c.getLong(c.getColumnIndexOrThrow("id_usuario")),
+            nombreTrabajador = c.getString(c.getColumnIndexOrThrow("nombre_trabajador")),
+            fecha = c.getString(c.getColumnIndexOrThrow("fecha")),
+            franja = c.getString(c.getColumnIndexOrThrow("franja")),
+            puesto = c.getString(c.getColumnIndexOrThrow("puesto")),
+            estado = c.getString(c.getColumnIndexOrThrow("estado")),
+            cambioPendiente = columnaPendientes >= 0 && c.getInt(columnaPendientes) > 0
+        )
+    }
+
+    private fun leerSolicitud(c: Cursor) = SolicitudCambio(
+        id = c.getLong(c.getColumnIndexOrThrow("id_solicitud")),
+        idTurno = c.getLong(c.getColumnIndexOrThrow("id_turno")),
         fecha = c.getString(c.getColumnIndexOrThrow("fecha")),
-        franja = c.getString(c.getColumnIndexOrThrow("franja")),
-        puesto = c.getString(c.getColumnIndexOrThrow("puesto"))
+        idTitular = c.getLong(c.getColumnIndexOrThrow("id_titular")),
+        nombreTitular = c.getString(c.getColumnIndexOrThrow("nombre_titular")),
+        franjaActual = c.getString(c.getColumnIndexOrThrow("franja")),
+        puestoActual = c.getString(c.getColumnIndexOrThrow("puesto")),
+        idNuevo = c.getLong(c.getColumnIndexOrThrow("id_usuario_nuevo")),
+        nombreNuevo = c.getString(c.getColumnIndexOrThrow("nombre_nuevo")),
+        franjaNueva = c.getString(c.getColumnIndexOrThrow("franja_nueva")),
+        puestoNuevo = c.getString(c.getColumnIndexOrThrow("puesto_nuevo")),
+        aceptaTitular = c.getInt(c.getColumnIndexOrThrow("acepta_titular")) == 1,
+        aceptaNuevo = c.getInt(c.getColumnIndexOrThrow("acepta_nuevo")) == 1
     )
 
     private fun leerPersona(c: Cursor) = PersonaIngreso(
@@ -517,7 +862,7 @@ class RinconSurDbHelper(context: Context) :
         compro = c.getInt(c.getColumnIndexOrThrow("compro")) == 1
     )
 
-    private fun actualizarEstadoAccesos(idAcceso: Int, activada: Boolean):  Boolean {
+    fun actualizarEstadoAccesos(idAcceso: Int, activada: Boolean):  Boolean {
         val valores = ContentValues().apply {
             put("activada", if (activada) 1 else 0)
         }
@@ -526,12 +871,12 @@ class RinconSurDbHelper(context: Context) :
 
     fun listarRoles(): List<Pair<Long, String>> {
         val roles = mutableListOf<Pair<Long, String>>()
-        readableDatabase.rawQuery("SELECT id_rol, nombre FROM roles ORDER BY id_rol", null).use { cursor ->
+        readableDatabase.rawQuery("SELECT id_rol, nombre_rol FROM roles ORDER BY id_rol", null).use { cursor ->
             while (cursor.moveToNext()) {
                 roles.add(
                     Pair(
                         cursor.getLong(cursor.getColumnIndexOrThrow("id_rol")),
-                        cursor.getString(cursor.getColumnIndexOrThrow("nombre"))
+                        cursor.getString(cursor.getColumnIndexOrThrow("nombre_rol"))
                     )
                 )
             }
@@ -547,49 +892,37 @@ class RinconSurDbHelper(context: Context) :
         cargo: String,
         idRol: Long
     ): Boolean {
-        val db = writableDatabase
-
-        var ultimoId = 0L
-        db.rawQuery("SELECT MAX(id_usuario) FROM usuarios", null).use { c ->
-            if (c.moveToFirst()) ultimoId = c.getLong(0)
-        }
-        val nuevoCodigo = "USR-${String.format("%03d", ultimoId + 1)}"
-
+        val sal = Seguridad.nuevaSal()
         val valores = ContentValues().apply {
-            put("codigo", nuevoCodigo)
+            put("codigo", siguienteCodigo())
             put("nombre", nombre)
             put("rut", rut)
             put("correo", correo.lowercase())
-            put("contrasena", contrasena)
+            put("sal", sal)
+            put("contrasena", Seguridad.hash(contrasena, sal))
+            put("debe_cambiar_contrasena", 1)
             put("cargo", cargo)
             put("id_rol", idRol)
             put("activo", 1)
         }
+        return writableDatabase.insert("usuarios", null, valores) != -1L
+    }
 
-        val idResultado = db.insert("usuarios", null, valores)
-        return idResultado != -1L
+    fun eliminarUsuario(idUsuario: Long): Boolean = desactivarEmpleado(idUsuario)
 
-        fun eliminarUsuario(idUsuario: Long): Boolean {
-            val valores = ContentValues().apply {
-                put("activo", 0)
-            }
-            return writableDatabase.update("usuarios", valores, "id_usuario = ?", arrayOf(idUsuario.toString())) > 0
+    fun actualizarUsuario(
+        idUsuario: Long,
+        nombre: String,
+        correo: String,
+        cargo: String,
+        idRol: Long
+    ): Boolean {
+        val valores = ContentValues().apply {
+            put("nombre", nombre)
+            put("correo", correo.lowercase())
+            put("cargo", cargo)
+            put("id_rol", idRol)
         }
-
-        fun actualizarUsuario(
-            idUsuario: Long,
-            nombre: String,
-            correo: String,
-            cargo: String,
-            idRol: Long
-        ): Boolean {
-            val valores = ContentValues().apply {
-                put("nombre", nombre)
-                put("correo", correo.lowercase())
-                put("cargo", cargo)
-                put("id_rol", idRol)
-            }
-            return writableDatabase.update("usuarios", valores, "id_usuario = ?", arrayOf(idUsuario.toString())) > 0
-        }
+        return writableDatabase.update("usuarios", valores, "id_usuario = ?", arrayOf(idUsuario.toString())) > 0
     }
 }

@@ -21,6 +21,24 @@ object Fechas {
         return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendario.time)
     }
 
+    fun sumarDias(fecha: String, dias: Int): String {
+        val formato = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        val calendario = Calendar.getInstance().apply {
+            time = formato.parse(fecha) ?: Date()
+            add(Calendar.DAY_OF_MONTH, dias)
+        }
+        return formato.format(calendario.time)
+    }
+
+    fun lunesDeLaSemana(semanasDesdeHoy: Int): String {
+        val calendario = Calendar.getInstance()
+        val diasDesdeLunes = (calendario.get(Calendar.DAY_OF_WEEK) + 5) % 7
+        val lunesDeEstaSemana = sumarDias(hoy(), -diasDesdeLunes)
+        return sumarDias(lunesDeEstaSemana, 7 * semanasDesdeHoy)
+    }
+
+    fun diasDeLaSemana(lunes: String): List<String> = (0..6).map { sumarDias(lunes, it) }
+
     fun hora(fechaHora: String): String = fechaHora.drop(11).take(5)
 
     fun aMillisLocal(fechaHora: String): Long =

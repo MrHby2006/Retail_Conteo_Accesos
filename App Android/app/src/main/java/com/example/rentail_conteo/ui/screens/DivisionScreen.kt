@@ -24,13 +24,14 @@ fun DivisionScreen(
     onConsultarClicked: (idAcceso: Int) -> Unit = {},
     onCerrarSesion: () -> Unit = {},
     onVerTrabajadoresClicked: () -> Unit = {},
-    onCrearTrabajadorClicked: () -> Unit = {}
+    onCrearTrabajadorClicked: () -> Unit = {},
+    onVolver: (() -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
-            BarraSuperior(titulo = "Consulta y Análisis por Acceso", onCerrarSesion = onCerrarSesion)
+            BarraSuperior(titulo = "Consulta y Análisis por Acceso", onCerrarSesion = onCerrarSesion, onVolver = onVolver)
         }
     ) { innerPadding ->
         Column(

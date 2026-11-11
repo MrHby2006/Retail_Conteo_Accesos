@@ -38,6 +38,7 @@ class CrearTrabajadorViewModel(application: Application) : AndroidViewModel(appl
         val errorRut = when {
             s.rut.isBlank() -> "El RUT es obligatorio"
             !ValidadorRut.esValido(s.rut) -> "RUT inválido (revisa el dígito verificador)"
+            db.rutEnUso(ValidadorRut.limpiar(s.rut)) -> "Este RUT ya está registrado"
             else -> null
         }
         val errorCorreo = when {
