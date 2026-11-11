@@ -8,15 +8,21 @@ data class Turno(
     val nombreTrabajador: String,
     val fecha: String,
     val franja: String,
-    val puesto: String
+    val puesto: String,
+    val estado: String = ESTADO_PUBLICADO,
+    val cambioPendiente: Boolean = false
 ) {
     fun puestoLegible(): String = if (puesto == PUESTO_CAJA) "Caja" else "Puerta $puesto"
 
     fun yaTermino(): Boolean =
         Fechas.aMillisLocal("$fecha ${Franjas.horaFin(franja)}") <= System.currentTimeMillis()
 
+    val esBorrador: Boolean get() = estado == ESTADO_BORRADOR
+
     companion object {
         const val PUESTO_CAJA = "CAJA"
+        const val ESTADO_BORRADOR = "BORRADOR"
+        const val ESTADO_PUBLICADO = "PUBLICADO"
     }
 }
 
@@ -36,6 +42,8 @@ object Franjas {
 }
 
 data class TurnosUIState(
+    val esProximaSemana: Boolean = true,
+    val diasSemana: List<String> = emptyList(),
     val diaElegido: String = "",
     val trabajadores: List<Usuario> = emptyList(),
     val trabajadorElegido: Usuario? = null,
@@ -43,11 +51,11 @@ data class TurnosUIState(
     val puestos: List<String> = emptyList(),
     val puestoElegido: String? = null,
     val turnosDelDia: List<Turno> = emptyList(),
+    val borradoresSemana: Int = 0,
     val turnoEnEdicion: Turno? = null,
     val errorTrabajador: String? = null,
     val errorFranja: String? = null,
     val errorPuesto: String? = null,
+    val pidiendoPublicar: Boolean = false,
     val mensaje: String? = null
-) {
-    val esHoy: Boolean get() = diaElegido == Fechas.hoy()
-}
+)
