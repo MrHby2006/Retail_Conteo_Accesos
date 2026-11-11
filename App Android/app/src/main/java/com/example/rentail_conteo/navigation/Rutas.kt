@@ -11,9 +11,17 @@ sealed class Ruta(val ruta: String) {
         fun conAcceso(idAcceso: Int) = "indicadores/$idAcceso"
     }
 
+    data object CambiarContrasena : Ruta("cambiarContrasena")
+
+    data object Admin : Ruta("admin")
+
+    data object Empleados : Ruta("empleados")
+
     data object Turnos : Ruta("turnos")
 
-    data object Eleccion : Ruta("eleccion")
+    data object Horario : Ruta("horario")
+
+    data object InicioTrabajador : Ruta("inicioTrabajador")
 
     data object Porton : Ruta("porton")
 
