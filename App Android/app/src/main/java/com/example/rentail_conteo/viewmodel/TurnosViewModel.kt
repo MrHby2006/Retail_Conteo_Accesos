@@ -17,19 +17,29 @@ class TurnosViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _uiState = MutableStateFlow(
         TurnosUIState(
-            diaElegido = Fechas.manana(),
             trabajadores = db.listarTrabajadores(),
-            puestos = listOf(Turno.PUESTO_CAJA) + db.listarAccesos(soloActivos = true).map { it.codigo },
-            turnosDelDia = db.listarTurnos(Fechas.manana())
+            puestos = listOf(Turno.PUESTO_CAJA) + db.listarAccesos(soloActivos = true).map { it.codigo }
         )
     )
     val uiState: StateFlow<TurnosUIState> = _uiState.asStateFlow()
 
+    init {
+        onSemanaElegida(proxima = true)
+    }
+
+    fun onSemanaElegida(proxima: Boolean) {
+        val dias = Fechas.diasDeLaSemana(Fechas.lunesDeLaSemana(if (proxima) 1 else 0))
+        val dia = if (proxima) dias.first() else Fechas.hoy()
+        _uiState.update {
+            it.copy(esProximaSemana = proxima, diasSemana = dias, diaElegido = dia).sinFormulario()
+        }
+        recargar()
+    }
+
     fun onDiaElegido(dia: String) {
         if (dia == _uiState.value.diaElegido) return
-        _uiState.update {
-            it.copy(diaElegido = dia, turnosDelDia = db.listarTurnos(dia)).sinFormulario()
-        }
+        _uiState.update { it.copy(diaElegido = dia).sinFormulario() }
+        recargar()
     }
 
     fun onTrabajadorElegido(trabajador: Usuario) =
@@ -42,8 +52,13 @@ class TurnosViewModel(application: Application) : AndroidViewModel(application) 
     fun mensajeMostrado() = _uiState.update { it.copy(mensaje = null) }
 
     fun onModificar(turno: Turno) {
-        if (turno.yaTermino()) {
-            _uiState.update { it.copy(mensaje = "Ese turno ya terminó, no se puede modificar") }
+        val error = when {
+            turno.yaTermino() -> "Ese turno ya terminó, no se puede modificar"
+            turno.cambioPendiente -> "Ese turno ya tiene un cambio esperando que lo acepten"
+            else -> null
+        }
+        if (error != null) {
+            _uiState.update { it.copy(mensaje = error) }
             return
         }
         _uiState.update {
@@ -58,6 +73,36 @@ class TurnosViewModel(application: Application) : AndroidViewModel(application) 
 
     fun onCancelarModificacion() = _uiState.update { it.sinFormulario() }
 
+    fun onQuitarBorrador(turno: Turno) {
+        val ok = db.borrarTurnoBorrador(turno.id)
+        _uiState.update {
+            it.copy(mensaje = if (ok) "Turno de ${turno.nombreTrabajador} quitado" else "Solo se pueden quitar turnos en borrador")
+        }
+        recargar()
+    }
+
+    fun onPedirPublicar() {
+        if (_uiState.value.borradoresSemana == 0) {
+            _uiState.update { it.copy(mensaje = "No hay turnos nuevos para publicar") }
+            return
+        }
+        _uiState.update { it.copy(pidiendoPublicar = true) }
+    }
+
+    fun onCancelarPublicar() = _uiState.update { it.copy(pidiendoPublicar = false) }
+
+    fun onConfirmarPublicar() {
+        val dias = _uiState.value.diasSemana
+        val publicados = db.publicarTurnos(dias.first(), dias.last())
+        _uiState.update {
+            it.copy(
+                pidiendoPublicar = false,
+                mensaje = "Horario publicado: $publicados turno(s). Los trabajadores ya pueden verlo"
+            )
+        }
+        recargar()
+    }
+
     fun onGuardar(idSupervisor: Long) {
         val estado = _uiState.value
         val enEdicion = estado.turnoEnEdicion
@@ -65,8 +110,8 @@ class TurnosViewModel(application: Application) : AndroidViewModel(application) 
         val franja = estado.franjaElegida
         val puesto = estado.puestoElegido
 
-        if (enEdicion == null && estado.diaElegido <= Fechas.hoy()) {
-            _uiState.update { it.copy(mensaje = "Los turnos nuevos se asignan desde mañana en adelante") }
+        if (enEdicion == null && !estado.esProximaSemana) {
+            _uiState.update { it.copy(mensaje = "Los turnos nuevos se arman para la próxima semana") }
             return
         }
 
@@ -92,21 +137,7 @@ class TurnosViewModel(application: Application) : AndroidViewModel(application) 
         if (errorTrabajador != null || errorFranja != null || errorPuesto != null) return
 
         if (enEdicion != null) {
-            if (enEdicion.idUsuario == trabajador!!.id && enEdicion.franja == franja && enEdicion.puesto == puesto) {
-                _uiState.update { it.copy(mensaje = "No cambiaste nada del turno") }
-                return
-            }
-            if (!db.actualizarTurno(enEdicion.id, trabajador.id, franja!!, puesto!!)) {
-                _uiState.update { it.copy(mensaje = "No se pudo modificar el turno") }
-                return
-            }
-            _uiState.update {
-                it.copy(
-                    turnosDelDia = db.listarTurnos(it.diaElegido),
-                    mensaje = "Turno modificado: ahora lo tiene ${trabajador.primerNombre()}, $franja, " +
-                            if (puesto == Turno.PUESTO_CAJA) "caja" else "puerta $puesto"
-                ).sinFormulario()
-            }
+            guardarModificacion(enEdicion, trabajador!!, franja!!, puesto!!, idSupervisor)
             return
         }
 
@@ -115,15 +146,57 @@ class TurnosViewModel(application: Application) : AndroidViewModel(application) 
             _uiState.update { it.copy(mensaje = "No se pudo guardar el turno") }
             return
         }
+        _uiState.update {
+            it.copy(
+                mensaje = "Borrador: ${trabajador.primerNombre()}, ${Fechas.diaCorto(it.diaElegido)}, $franja, " +
+                        legible(puesto) + ". Recuerda publicar la semana"
+            ).sinFormulario()
+        }
+        recargar()
+    }
 
+    private fun guardarModificacion(
+        turno: Turno, trabajador: Usuario, franja: String, puesto: String, idSupervisor: Long
+    ) {
+        if (turno.idUsuario == trabajador.id && turno.franja == franja && turno.puesto == puesto) {
+            _uiState.update { it.copy(mensaje = "No cambiaste nada del turno") }
+            return
+        }
+
+        if (turno.esBorrador) {
+            val ok = db.actualizarTurno(turno.id, trabajador.id, franja, puesto)
+            _uiState.update {
+                it.copy(mensaje = if (ok) "Borrador actualizado" else "No se pudo modificar el turno").sinFormulario()
+            }
+            recargar()
+            return
+        }
+
+        val id = db.crearSolicitudCambio(turno.id, idSupervisor, trabajador.id, franja, puesto)
+        val quienes = if (turno.idUsuario == trabajador.id) {
+            trabajador.primerNombre()
+        } else {
+            "${turno.nombreTrabajador.substringBefore(" ")} y ${trabajador.primerNombre()}"
+        }
+        _uiState.update {
+            it.copy(
+                mensaje = if (id == -1L) "No se pudo enviar la solicitud"
+                else "Solicitud enviada. El cambio se aplica cuando $quienes lo acepten"
+            ).sinFormulario()
+        }
+        recargar()
+    }
+
+    private fun recargar() {
         _uiState.update {
             it.copy(
                 turnosDelDia = db.listarTurnos(it.diaElegido),
-                mensaje = "Turno asignado a ${trabajador.primerNombre()}: ${Fechas.diaCorto(it.diaElegido)}, $franja, " +
-                        if (puesto == Turno.PUESTO_CAJA) "caja" else "puerta $puesto"
-            ).sinFormulario()
+                borradoresSemana = db.contarBorradores(it.diasSemana.first(), it.diasSemana.last())
+            )
         }
     }
+
+    private fun legible(puesto: String) = if (puesto == Turno.PUESTO_CAJA) "caja" else "puerta $puesto"
 
     private fun TurnosUIState.sinFormulario() = copy(
         turnoEnEdicion = null, trabajadorElegido = null, franjaElegida = null, puestoElegido = null,
