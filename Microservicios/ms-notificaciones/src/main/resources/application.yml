@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: ms-notificaciones
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USUARIO:}
+    password: ${MAIL_CLAVE:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+server:
+  port: 8083
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
