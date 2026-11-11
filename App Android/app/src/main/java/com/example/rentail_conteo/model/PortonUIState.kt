@@ -4,6 +4,7 @@ data class PortonUIState(
     val accesos: List<AccesoItem> = emptyList(),
     val turnoHoy: String? = null,
     val accesoElegido: AccesoItem? = null,
+    val accesoFijo: Boolean = false,
     val rangoEtario: String? = null,
     val altura: String? = null,
     val colorRopa: String? = null,
