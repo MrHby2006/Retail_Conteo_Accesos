@@ -1,5 +1,6 @@
 package com.example.rentail_conteo.ui.screens
 
+import android.R
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.*
@@ -21,7 +22,9 @@ fun DivisionScreen(
     viewModel: DivisionViewModel,
     modifier: Modifier = Modifier,
     onConsultarClicked: (idAcceso: Int) -> Unit = {},
-    onCerrarSesion: () -> Unit = {}
+    onCerrarSesion: () -> Unit = {},
+    onVerTrabajadoresClicked: () -> Unit = {},
+    onCrearTrabajadorClicked: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -37,6 +40,24 @@ fun DivisionScreen(
                 .padding(Dimens.espacioPantalla),
             verticalArrangement = Arrangement.spacedBy(Dimens.espacioGrande)
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.espacioChico)
+            ) {
+                OutlinedButton(
+                    onClick = onVerTrabajadoresClicked,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Ver lista de trabajadores", style = MaterialTheme.typography.bodyMedium)
+                }
+
+                OutlinedButton(
+                    onClick = onCrearTrabajadorClicked,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Crear usuario", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
             Text(
                 text = "Seleccione el acceso a consultar:",
                 style = MaterialTheme.typography.bodyMedium

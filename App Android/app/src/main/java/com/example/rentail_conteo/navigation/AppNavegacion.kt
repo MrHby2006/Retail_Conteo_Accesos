@@ -13,11 +13,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.rentail_conteo.model.Rol
 import com.example.rentail_conteo.model.Usuario
+import com.example.rentail_conteo.ui.screens.CrearTrabajadorScreen
 import com.example.rentail_conteo.ui.screens.DivisionScreen
 import com.example.rentail_conteo.ui.screens.EleccionPantallaScreen
 import com.example.rentail_conteo.ui.screens.IndicadoresScreen
+import com.example.rentail_conteo.ui.screens.ListaTrabajadoresScreen
 import com.example.rentail_conteo.ui.screens.LoginScreen
 import com.example.rentail_conteo.ui.screens.PortonScreen
+import com.example.rentail_conteo.ui.screens.RecuperarContrasenaScreen
 import com.example.rentail_conteo.ui.screens.RegistrosClientesScreen
 import com.example.rentail_conteo.ui.screens.TurnosScreen
 import com.example.rentail_conteo.viewmodel.SesionViewModel
@@ -45,7 +48,7 @@ fun AppNavegacion() {
         }
 
         composable(Ruta.RecuperarContrasena.ruta) {
-            Ruta.RecuperarContrasenaScreen(
+            RecuperarContrasenaScreen(
                 onVolver = { navController.popBackStack() }
             )
         }
@@ -54,7 +57,24 @@ fun AppNavegacion() {
             DivisionScreen(
                 viewModel = viewModel(),
                 onConsultarClicked = { idAcceso -> navController.navigate(Ruta.Indicadores.conAcceso(idAcceso)) },
-                onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
+                onCerrarSesion = { cerrarSesion(sesionViewModel, navController) },
+                onVerTrabajadoresClicked = { navController.navigate(Ruta.ListaTrabajadores.ruta) },
+                onCrearTrabajadorClicked = { navController.navigate(Ruta.CrearTrabajador.ruta) }
+            )
+        }
+
+        composable(Ruta.ListaTrabajadores.ruta) {
+            ListaTrabajadoresScreen(
+                onVolver = { navController.popBackStack() },
+                onModificarTrabajador = { id ->
+                    navController.navigate(Ruta.EditarTrabajador.crearRuta(id))
+                }
+            )
+        }
+
+        composable(Ruta.CrearTrabajador.ruta) {
+            CrearTrabajadorScreen(
+                onVolver = { navController.popBackStack() }
             )
         }
 

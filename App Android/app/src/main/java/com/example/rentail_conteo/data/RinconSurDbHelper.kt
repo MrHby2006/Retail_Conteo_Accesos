@@ -523,4 +523,73 @@ class RinconSurDbHelper(context: Context) :
         }
         return writableDatabase.update("accesos", valores, "id_acceso = ?", arrayOf(idAcceso.toString())) == 1
     }
+
+    fun listarRoles(): List<Pair<Long, String>> {
+        val roles = mutableListOf<Pair<Long, String>>()
+        readableDatabase.rawQuery("SELECT id_rol, nombre FROM roles ORDER BY id_rol", null).use { cursor ->
+            while (cursor.moveToNext()) {
+                roles.add(
+                    Pair(
+                        cursor.getLong(cursor.getColumnIndexOrThrow("id_rol")),
+                        cursor.getString(cursor.getColumnIndexOrThrow("nombre"))
+                    )
+                )
+            }
+        }
+        return roles
+    }
+
+    fun insertarUsuario(
+        nombre: String,
+        rut: String,
+        correo: String,
+        contrasena: String,
+        cargo: String,
+        idRol: Long
+    ): Boolean {
+        val db = writableDatabase
+
+        var ultimoId = 0L
+        db.rawQuery("SELECT MAX(id_usuario) FROM usuarios", null).use { c ->
+            if (c.moveToFirst()) ultimoId = c.getLong(0)
+        }
+        val nuevoCodigo = "USR-${String.format("%03d", ultimoId + 1)}"
+
+        val valores = ContentValues().apply {
+            put("codigo", nuevoCodigo)
+            put("nombre", nombre)
+            put("rut", rut)
+            put("correo", correo.lowercase())
+            put("contrasena", contrasena)
+            put("cargo", cargo)
+            put("id_rol", idRol)
+            put("activo", 1)
+        }
+
+        val idResultado = db.insert("usuarios", null, valores)
+        return idResultado != -1L
+
+        fun eliminarUsuario(idUsuario: Long): Boolean {
+            val valores = ContentValues().apply {
+                put("activo", 0)
+            }
+            return writableDatabase.update("usuarios", valores, "id_usuario = ?", arrayOf(idUsuario.toString())) > 0
+        }
+
+        fun actualizarUsuario(
+            idUsuario: Long,
+            nombre: String,
+            correo: String,
+            cargo: String,
+            idRol: Long
+        ): Boolean {
+            val valores = ContentValues().apply {
+                put("nombre", nombre)
+                put("correo", correo.lowercase())
+                put("cargo", cargo)
+                put("id_rol", idRol)
+            }
+            return writableDatabase.update("usuarios", valores, "id_usuario = ?", arrayOf(idUsuario.toString())) > 0
+        }
+    }
 }
