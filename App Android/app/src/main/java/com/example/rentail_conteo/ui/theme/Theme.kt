@@ -15,29 +15,29 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
 private val EsquemaOscuro = darkColorScheme(
-    primary = AcentoSuaveInv,
+    primary = NaranjaCobrizo,
     onPrimary = Negro,
-    secondary = AcentoOscuroInv,
-    onSecondary = TextoPrimarioInv,
-    background = ColorFondoInv,
-    onBackground = TextoPrimarioInv,
+    secondary = CremaSuave,
+    onSecondary = Negro,
+    background = ColorFondoOscuro,
+    onBackground = TextoPrimarioOscuro,
     surface = Negro,
-    onSurface = TextoPrimarioInv,
-    surfaceVariant = ColorFondoInv,
-    onSurfaceVariant = TextoSecundarioInv
+    onSurface = TextoPrimarioOscuro,
+    surfaceVariant = ColorFondoOscuro,
+    onSurfaceVariant = TextoSecundarioOscuro
 )
 
 private val EsquemaClaro = lightColorScheme(
-    primary = AcentoOscuro,
+    primary = MarronTerracota,
     onPrimary = Blanco,
-    secondary = AcentoSuave,
-    onSecondary = TextoPrimario,
-    background = ColorFondo,
-    onBackground = TextoPrimario,
+    secondary = NaranjaCobrizo,
+    onSecondary = Blanco,
+    background = ColorFondoClaro,
+    onBackground = TextoPrimarioClaro,
     surface = Blanco,
-    onSurface = TextoPrimario,
-    surfaceVariant = ColorFondo,
-    onSurfaceVariant = TextoSecundario
+    onSurface = TextoPrimarioClaro,
+    surfaceVariant = CremaSuave,
+    onSurfaceVariant = TextoSecundarioClaro
 )
 
 private val Formas = Shapes(
