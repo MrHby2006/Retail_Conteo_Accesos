@@ -13,10 +13,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.rentail_conteo.model.Rol
 import com.example.rentail_conteo.model.Usuario
+import com.example.rentail_conteo.ui.screens.AdminScreen
+import com.example.rentail_conteo.ui.screens.CambiarContrasenaScreen
 import com.example.rentail_conteo.ui.screens.CrearTrabajadorScreen
 import com.example.rentail_conteo.ui.screens.DivisionScreen
-import com.example.rentail_conteo.ui.screens.EleccionPantallaScreen
+import com.example.rentail_conteo.ui.screens.EmpleadosScreen
+import com.example.rentail_conteo.ui.screens.HorarioScreen
 import com.example.rentail_conteo.ui.screens.IndicadoresScreen
+import com.example.rentail_conteo.ui.screens.InicioTrabajadorScreen
 import com.example.rentail_conteo.ui.screens.ListaTrabajadoresScreen
 import com.example.rentail_conteo.ui.screens.LoginScreen
 import com.example.rentail_conteo.ui.screens.PortonScreen
@@ -53,22 +57,62 @@ fun AppNavegacion() {
             )
         }
 
+        composable(Ruta.CambiarContrasena.ruta) {
+            val actual = usuario ?: return@composable
+            CambiarContrasenaScreen(
+                usuario = actual,
+                onListo = { actualizado ->
+                    sesionViewModel.iniciarSesion(actualizado)
+                    navController.navigate(rutaInicial(actualizado)) { popUpTo(0) }
+                },
+                onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
+            )
+        }
+
+        composable(Ruta.Admin.ruta) {
+            val actual = usuario ?: return@composable
+            AdminScreen(
+                admin = actual,
+                onIndicadores = { navController.navigate(Ruta.Division.ruta) },
+                onEmpleados = { navController.navigate(Ruta.Empleados.ruta) },
+                onHorario = { navController.navigate(Ruta.Horario.ruta) },
+                onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
+            )
+        }
+
+        composable(Ruta.Empleados.ruta) {
+            val actual = usuario ?: return@composable
+            EmpleadosScreen(
+                admin = actual,
+                onVolver = { navController.popBackStack() },
+                onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
+            )
+        }
+
+        composable(Ruta.Horario.ruta) {
+            val actual = usuario ?: return@composable
+            HorarioScreen(
+                usuario = actual,
+                onVolver = { navController.popBackStack() },
+                onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
+            )
+        }
+
         composable(Ruta.Division.ruta) {
             DivisionScreen(
                 viewModel = viewModel(),
                 onConsultarClicked = { idAcceso -> navController.navigate(Ruta.Indicadores.conAcceso(idAcceso)) },
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) },
                 onVerTrabajadoresClicked = { navController.navigate(Ruta.ListaTrabajadores.ruta) },
-                onCrearTrabajadorClicked = { navController.navigate(Ruta.CrearTrabajador.ruta) }
+                onCrearTrabajadorClicked = { navController.navigate(Ruta.CrearTrabajador.ruta) },
+                onVolver = { navController.popBackStack() }
             )
         }
 
         composable(Ruta.ListaTrabajadores.ruta) {
             ListaTrabajadoresScreen(
                 onVolver = { navController.popBackStack() },
-                onModificarTrabajador = { id ->
-                    navController.navigate(Ruta.EditarTrabajador.crearRuta(id))
-                }
+                onModificarTrabajador = { }
             )
         }
 
@@ -93,16 +137,18 @@ fun AppNavegacion() {
             val actual = usuario ?: return@composable
             TurnosScreen(
                 supervisor = actual,
+                onVerHorario = { navController.navigate(Ruta.Horario.ruta) },
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
             )
         }
 
-        composable(Ruta.Eleccion.ruta) {
+        composable(Ruta.InicioTrabajador.ruta) {
             val actual = usuario ?: return@composable
-            EleccionPantallaScreen(
+            InicioTrabajadorScreen(
                 trabajador = actual,
                 onIrAPuerta = { navController.navigate(Ruta.Porton.ruta) },
                 onIrACaja = { navController.navigate(Ruta.RegistrosClientes.ruta) },
+                onVerHorario = { navController.navigate(Ruta.Horario.ruta) },
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
             )
         }
@@ -127,11 +173,12 @@ fun AppNavegacion() {
     }
 }
 
-private fun rutaInicial(usuario: Usuario?): String = when (usuario?.rolId) {
-    null -> Ruta.Login.ruta
-    Rol.OBSERVADOR, Rol.CAJERO -> Ruta.Eleccion.ruta
-    Rol.SUPERVISOR -> Ruta.Turnos.ruta
-    else -> Ruta.Division.ruta
+private fun rutaInicial(usuario: Usuario?): String = when {
+    usuario == null -> Ruta.Login.ruta
+    usuario.debeCambiarContrasena -> Ruta.CambiarContrasena.ruta
+    usuario.rolId == Rol.ADMINISTRADOR -> Ruta.Admin.ruta
+    usuario.rolId == Rol.SUPERVISOR -> Ruta.Turnos.ruta
+    else -> Ruta.InicioTrabajador.ruta
 }
 
 private fun cerrarSesion(sesion: SesionViewModel, navController: NavHostController) {

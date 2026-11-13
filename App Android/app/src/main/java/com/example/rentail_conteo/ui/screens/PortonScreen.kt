@@ -75,14 +75,22 @@ fun PortonScreen(
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            SeleccionChips(
-                titulo = "¿En qué acceso estás?",
-                opciones = uiState.accesos,
-                seleccionada = uiState.accesoElegido,
-                onSeleccionar = viewModel::onAccesoElegido,
-                textoDe = { "${it.codigo} · ${it.nombre}" },
-                error = uiState.errorAcceso
-            )
+            val accesoDelTurno = uiState.accesoElegido
+            if (uiState.accesoFijo && accesoDelTurno != null) {
+                Text(
+                    "Estás en ${accesoDelTurno.codigo} · ${accesoDelTurno.nombre}",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            } else {
+                SeleccionChips(
+                    titulo = "¿En qué acceso estás?",
+                    opciones = uiState.accesos,
+                    seleccionada = uiState.accesoElegido,
+                    onSeleccionar = viewModel::onAccesoElegido,
+                    textoDe = { "${it.codigo} · ${it.nombre}" },
+                    error = uiState.errorAcceso
+                )
+            }
 
             uiState.accesoElegido?.let { acceso ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -135,6 +143,7 @@ fun PortonScreen(
                 activado = uiState.acompanado,
                 onCambio = viewModel::onAcompanadoCambia
             )
+
             CampoReferencia(
                 valor = uiState.detalle,
                 onValorCambia = viewModel::onDetalleCambia,

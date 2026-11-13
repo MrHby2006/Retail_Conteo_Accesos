@@ -80,7 +80,7 @@ fun RecuperarContrasenaScreen(
                 isError = uiState.errorCorreo != null,
                 supportingText = { uiState.errorCorreo?.let { Text(it) } },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(KeyboardType = KeyboardType.Email),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth()
             )
 

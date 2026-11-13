@@ -8,18 +8,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,27 +37,16 @@ import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.util.Fechas
 import com.example.rentail_conteo.viewmodel.TurnosViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TurnosScreen(
     supervisor: Usuario,
+    onVerHorario: () -> Unit,
     onCerrarSesion: () -> Unit,
     viewModel: TurnosViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scroll = rememberScrollState()
-
-    val hoyMillis = remember { Fechas.aMillisUtc(Fechas.hoy()) }
-    val calendario = rememberDatePickerState(
-        initialSelectedDateMillis = Fechas.aMillisUtc(uiState.diaElegido),
-        selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis >= hoyMillis
-        }
-    )
-    LaunchedEffect(calendario.selectedDateMillis) {
-        calendario.selectedDateMillis?.let { viewModel.onDiaElegido(Fechas.desdeMillisUtc(it)) }
-    }
 
     LaunchedEffect(uiState.turnoEnEdicion) {
         if (uiState.turnoEnEdicion != null) scroll.animateScrollTo(0)
@@ -70,6 +57,22 @@ fun TurnosScreen(
             snackbarHostState.showSnackbar(it)
             viewModel.mensajeMostrado()
         }
+    }
+
+    if (uiState.pidiendoPublicar) {
+        AlertDialog(
+            onDismissRequest = viewModel::onCancelarPublicar,
+            title = { Text("Publicar horario") },
+            text = {
+                Text(
+                    "Se publicarán ${uiState.borradoresSemana} turno(s) de la semana del " +
+                            "${Fechas.diaCorto(uiState.diasSemana.first())}. Los trabajadores podrán verlos y " +
+                            "después cualquier cambio necesitará que lo acepten."
+                )
+            },
+            confirmButton = { TextButton(onClick = viewModel::onConfirmarPublicar) { Text("Publicar") } },
+            dismissButton = { TextButton(onClick = viewModel::onCancelarPublicar) { Text("Cancelar") } }
+        )
     }
 
     Scaffold(
@@ -86,28 +89,41 @@ fun TurnosScreen(
         ) {
             val enEdicion = uiState.turnoEnEdicion
 
-            if (enEdicion == null) {
-                Text("Día", style = MaterialTheme.typography.titleSmall)
-                DatePicker(
-                    state = calendario,
-                    title = null,
-                    headline = null,
-                    showModeToggle = false
+            TextButton(onClick = onVerHorario) { Text("Ver horario publicado") }
+
+            SeleccionChips(
+                titulo = "Semana",
+                opciones = listOf(false, true),
+                seleccionada = uiState.esProximaSemana,
+                onSeleccionar = viewModel::onSemanaElegida,
+                textoDe = { if (it) "Próxima semana" else "Esta semana" }
+            )
+            if (uiState.diasSemana.isNotEmpty()) {
+                SeleccionChips(
+                    titulo = "Día (${Fechas.diaCorto(uiState.diasSemana.first())} al ${Fechas.diaCorto(uiState.diasSemana.last())})",
+                    opciones = uiState.diasSemana,
+                    seleccionada = uiState.diaElegido,
+                    onSeleccionar = viewModel::onDiaElegido,
+                    textoDe = { Fechas.diaCorto(it) }
                 )
-            } else {
+            }
+
+            if (enEdicion != null) {
                 Text(
                     "Modificando el turno de ${enEdicion.nombreTrabajador} · ${Fechas.diaCorto(enEdicion.fecha)}",
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    "Si la persona no puede ir, elige a quien la reemplaza.",
+                    if (enEdicion.esBorrador) "Es un borrador: el cambio se guarda de inmediato."
+                    else "El turno ya está publicado: se enviará una solicitud y el cambio se aplica cuando los trabajadores la acepten.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
 
-            if (enEdicion == null && uiState.esHoy) {
+            if (enEdicion == null && !uiState.esProximaSemana) {
                 Text(
-                    "Hoy no se pueden asignar turnos nuevos. Si alguien no puede venir, toca Modificar en su turno.",
+                    "Esta semana ya está publicada. Si alguien no puede venir, toca Modificar en su turno: " +
+                            "el cambio necesita que los trabajadores lo acepten.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             } else {
@@ -137,7 +153,11 @@ fun TurnosScreen(
                 )
 
                 Boton(
-                    texto = if (enEdicion == null) "Asignar turno" else "Guardar cambios",
+                    texto = when {
+                        enEdicion == null -> "Agregar turno"
+                        enEdicion.esBorrador -> "Guardar cambios"
+                        else -> "Enviar solicitud de cambio"
+                    },
                     onClick = { viewModel.onGuardar(supervisor.id) },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -149,6 +169,14 @@ fun TurnosScreen(
                 }
             }
 
+            if (uiState.esProximaSemana && enEdicion == null) {
+                Boton(
+                    texto = "Publicar semana (${uiState.borradoresSemana} en borrador)",
+                    onClick = viewModel::onPedirPublicar,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             HorizontalDivider()
 
             Text(
@@ -156,13 +184,14 @@ fun TurnosScreen(
                 style = MaterialTheme.typography.titleMedium
             )
             if (uiState.turnosDelDia.isEmpty()) {
-                Text("Todavía no hay turnos asignados este día.", style = MaterialTheme.typography.bodyMedium)
+                Text("Todavía no hay turnos este día.", style = MaterialTheme.typography.bodyMedium)
             }
             uiState.turnosDelDia.forEach { turno ->
                 TarjetaTurno(
                     turno = turno,
                     enEdicion = turno.id == enEdicion?.id,
-                    onModificar = { viewModel.onModificar(turno) }
+                    onModificar = { viewModel.onModificar(turno) },
+                    onQuitar = { viewModel.onQuitarBorrador(turno) }
                 )
             }
         }
@@ -170,7 +199,7 @@ fun TurnosScreen(
 }
 
 @Composable
-private fun TarjetaTurno(turno: Turno, enEdicion: Boolean, onModificar: () -> Unit) {
+private fun TarjetaTurno(turno: Turno, enEdicion: Boolean, onModificar: () -> Unit, onQuitar: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(Dimens.espacioMedio),
@@ -182,11 +211,27 @@ private fun TarjetaTurno(turno: Turno, enEdicion: Boolean, onModificar: () -> Un
                     "${turno.franja} (${Franjas.horario(turno.franja)}) · ${turno.puestoLegible()}",
                     style = MaterialTheme.typography.bodyMedium
                 )
+                AssistChip(
+                    onClick = {},
+                    label = {
+                        Text(
+                            when {
+                                turno.cambioPendiente -> "Cambio esperando respuesta"
+                                turno.esBorrador -> "Borrador"
+                                else -> "Publicado"
+                            }
+                        )
+                    }
+                )
             }
             when {
                 enEdicion -> Text("Editando", style = MaterialTheme.typography.labelLarge)
                 turno.yaTermino() -> Text("Terminado", style = MaterialTheme.typography.labelLarge)
-                else -> TextButton(onClick = onModificar) { Text("Modificar") }
+                turno.cambioPendiente -> Unit
+                else -> Column(horizontalAlignment = Alignment.End) {
+                    TextButton(onClick = onModificar) { Text("Modificar") }
+                    if (turno.esBorrador) TextButton(onClick = onQuitar) { Text("Quitar") }
+                }
             }
         }
     }

@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: ms-turnos
+  datasource:
+    url: jdbc:mysql://localhost:3306/rinconsur_turnos?createDatabaseIfNotExist=true
+    username: root
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+server:
+  port: 8082
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
