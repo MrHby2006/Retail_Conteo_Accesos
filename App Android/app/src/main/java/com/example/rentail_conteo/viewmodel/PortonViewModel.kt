@@ -1,53 +1,83 @@
 package com.example.rentail_conteo.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import com.example.rentail_conteo.data.RinconSurDbHelper
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.rentail_conteo.data.AccesoRepository
+import com.example.rentail_conteo.data.TurnoRepository
+import com.example.rentail_conteo.data.remote.IngresoRequest
+import com.example.rentail_conteo.data.remote.OpcionResponse
 import com.example.rentail_conteo.model.AccesoItem
 import com.example.rentail_conteo.model.Franjas
-import com.example.rentail_conteo.model.PersonaIngreso
+import com.example.rentail_conteo.model.Opcion
 import com.example.rentail_conteo.model.PortonUIState
 import com.example.rentail_conteo.util.Fechas
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-class PortonViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = RinconSurDbHelper.obtener(application)
+class PortonViewModel : ViewModel() {
+    private val accesoRepositorio = AccesoRepository()
+    private val turnoRepositorio = TurnoRepository()
 
-    private val _uiState = MutableStateFlow(PortonUIState(accesos = db.listarAccesos()))
+    private val _uiState = MutableStateFlow(PortonUIState())
     val uiState: StateFlow<PortonUIState> = _uiState.asStateFlow()
 
-    fun cargarTurno(idObservador: Long) {
-        val turno = db.turnoDeHoy(idObservador, Fechas.hoy()) ?: return
-        _uiState.update { it.copy(turnoHoy = "${turno.franja} · ${turno.puestoLegible()}") }
-        _uiState.value.accesos.firstOrNull { it.codigo == turno.puesto }?.let {
-            onAccesoElegido(it)
-            _uiState.update { estado -> estado.copy(accesoFijo = true) }
+    fun cargar(idObservador: Long) {
+        viewModelScope.launch {
+            try {
+                val accesos = accesoRepositorio.listar(soloActivos = true)
+                val catalogos = accesoRepositorio.catalogos()
+                _uiState.update {
+                    it.copy(
+                        accesos = accesos,
+                        rangos = catalogos.rangos.aOpciones(),
+                        alturas = catalogos.alturas.aOpciones(),
+                        colores = catalogos.colores.aOpciones(),
+                        companias = catalogos.companias.aOpciones()
+                    )
+                }
+                val turno = turnoRepositorio.turnoDeHoy(idObservador) ?: return@launch
+                _uiState.update { it.copy(turnoHoy = "${turno.franja} · ${turno.puestoLegible()}") }
+                accesos.firstOrNull { it.codigo == turno.puesto }?.let {
+                    onAccesoElegido(it)
+                    _uiState.update { estado -> estado.copy(accesoFijo = true) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(mensaje = e.message) }
+            }
         }
     }
+
+    private fun List<OpcionResponse>.aOpciones() = map { Opcion(it.id, it.nombre) }
 
     fun onAccesoElegido(acceso: AccesoItem) {
-        _uiState.update {
-            it.copy(
-                accesoElegido = acceso,
-                errorAcceso = null,
-                registradosHoy = db.contarIngresosDeHoy(acceso.id.toLong(), Fechas.hoy())
-            )
+        _uiState.update { it.copy(accesoElegido = acceso, errorAcceso = null) }
+        actualizarContador(acceso)
+    }
+
+    private fun actualizarContador(acceso: AccesoItem) {
+        viewModelScope.launch {
+            try {
+                val total = accesoRepositorio.contarDelDia(acceso.id.toLong(), Fechas.hoy())
+                _uiState.update { it.copy(registradosHoy = total) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(mensaje = e.message) }
+            }
         }
     }
 
-    fun onRangoElegido(valor: String) = _uiState.update { it.copy(rangoEtario = valor, errorRango = null) }
+    fun onRangoElegido(valor: Opcion) = _uiState.update { it.copy(rangoEtario = valor, errorRango = null) }
 
-    fun onAlturaElegida(valor: String) = _uiState.update { it.copy(altura = valor, errorAltura = null) }
+    fun onAlturaElegida(valor: Opcion) = _uiState.update { it.copy(altura = valor, errorAltura = null) }
 
-    fun onColorElegido(valor: String) = _uiState.update { it.copy(colorRopa = valor, errorColor = null) }
+    fun onColorElegido(valor: Opcion) = _uiState.update { it.copy(colorRopa = valor, errorColor = null) }
 
-    fun onColorAbajoElegido(valor: String) =
+    fun onColorAbajoElegido(valor: Opcion) =
         _uiState.update { it.copy(colorRopaAbajo = valor, errorColorAbajo = null) }
 
-    fun onAcompanadoCambia(valor: Boolean) = _uiState.update { it.copy(acompanado = valor) }
+    fun onCompaniaElegida(valor: Opcion) = _uiState.update { it.copy(compania = valor, errorCompania = null) }
 
     fun onDetalleCambia(valor: String) = _uiState.update { it.copy(detalle = valor, errorDetalle = null) }
 
@@ -55,6 +85,7 @@ class PortonViewModel(application: Application) : AndroidViewModel(application) 
 
     fun onRegistrar(idObservador: Long) {
         val estado = _uiState.value
+        if (estado.guardando) return
 
         if (!Franjas.tiendaAbierta(Fechas.hora(Fechas.ahora()))) {
             _uiState.update {
@@ -68,46 +99,46 @@ class PortonViewModel(application: Application) : AndroidViewModel(application) 
         val errorAltura = if (estado.altura == null) "Elige la altura" else null
         val errorColor = if (estado.colorRopa == null) "Elige el color de arriba" else null
         val errorColorAbajo = if (estado.colorRopaAbajo == null) "Elige el color de abajo" else null
+        val errorCompania = if (estado.compania == null) "Elige si viene sola o acompañada" else null
         val errorDetalle = if (estado.detalle.trim().length > 60) "Máximo 60 caracteres" else null
 
         _uiState.update {
             it.copy(
                 errorAcceso = errorAcceso, errorRango = errorRango, errorAltura = errorAltura,
-                errorColor = errorColor, errorColorAbajo = errorColorAbajo, errorDetalle = errorDetalle
+                errorColor = errorColor, errorColorAbajo = errorColorAbajo, errorCompania = errorCompania,
+                errorDetalle = errorDetalle
             )
         }
-        val hayErrores = listOf(errorAcceso, errorRango, errorAltura, errorColor, errorColorAbajo, errorDetalle)
+        val hayErrores = listOf(errorAcceso, errorRango, errorAltura, errorColor, errorColorAbajo, errorCompania, errorDetalle)
             .any { it != null }
         if (hayErrores) return
 
         val acceso = estado.accesoElegido!!
-        val id = db.insertarPersona(
-            PersonaIngreso(
-                accesoId = acceso.id.toLong(),
-                observadorId = idObservador,
-                fechaHora = Fechas.ahora(),
-                rangoEtario = estado.rangoEtario!!,
-                altura = estado.altura!!,
-                colorRopa = estado.colorRopa!!,
-                colorRopaAbajo = estado.colorRopaAbajo!!,
-                acompanado = estado.acompanado,
-                detalle = estado.detalle.trim()
-            )
+        val datos = IngresoRequest(
+            idAcceso = acceso.id.toLong(),
+            idObservador = idObservador,
+            idRango = estado.rangoEtario!!.id,
+            idAltura = estado.altura!!.id,
+            idColorSuperior = estado.colorRopa!!.id,
+            idColorInferior = estado.colorRopaAbajo!!.id,
+            idTipoCompania = estado.compania!!.id,
+            detalle = estado.detalle.trim()
         )
-        if (id == -1L) {
-            _uiState.update { it.copy(mensaje = "No se pudo guardar. Inténtalo de nuevo") }
-            return
-        }
-
-        _uiState.update {
-            PortonUIState(
-                accesos = it.accesos,
-                turnoHoy = it.turnoHoy,
-                accesoElegido = acceso,
-                accesoFijo = it.accesoFijo,
-                registradosHoy = db.contarIngresosDeHoy(acceso.id.toLong(), Fechas.hoy()),
-                mensaje = "Ingreso registrado en ${acceso.codigo}"
-            )
+        _uiState.update { it.copy(guardando = true) }
+        viewModelScope.launch {
+            try {
+                accesoRepositorio.registrarIngreso(datos)
+                _uiState.update {
+                    it.copy(
+                        rangoEtario = null, altura = null, colorRopa = null, colorRopaAbajo = null,
+                        compania = null, detalle = "", guardando = false,
+                        mensaje = "Ingreso registrado en ${acceso.codigo}"
+                    )
+                }
+                actualizarContador(acceso)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(guardando = false, mensaje = e.message) }
+            }
         }
     }
 }

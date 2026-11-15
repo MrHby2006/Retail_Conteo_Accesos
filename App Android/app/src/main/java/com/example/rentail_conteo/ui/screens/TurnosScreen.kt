@@ -31,6 +31,7 @@ import com.example.rentail_conteo.model.Franjas
 import com.example.rentail_conteo.model.Turno
 import com.example.rentail_conteo.model.Usuario
 import com.example.rentail_conteo.ui.components.BarraSuperior
+import com.example.rentail_conteo.ui.components.SaludoCumpleanos
 import com.example.rentail_conteo.ui.components.Boton
 import com.example.rentail_conteo.ui.components.SeleccionChips
 import com.example.rentail_conteo.ui.theme.Dimens
@@ -41,6 +42,7 @@ import com.example.rentail_conteo.viewmodel.TurnosViewModel
 fun TurnosScreen(
     supervisor: Usuario,
     onVerHorario: () -> Unit,
+    onPerfil: () -> Unit,
     onCerrarSesion: () -> Unit,
     viewModel: TurnosViewModel = viewModel()
 ) {
@@ -76,7 +78,9 @@ fun TurnosScreen(
     }
 
     Scaffold(
-        topBar = { BarraSuperior(titulo = "Turnos · ${supervisor.primerNombre()}", onCerrarSesion = onCerrarSesion) },
+        topBar = {
+            BarraSuperior(titulo = "Turnos · ${supervisor.primerNombre()}", onCerrarSesion = onCerrarSesion, onPerfil = onPerfil)
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
@@ -88,6 +92,8 @@ fun TurnosScreen(
             verticalArrangement = Arrangement.spacedBy(Dimens.espacioMedio)
         ) {
             val enEdicion = uiState.turnoEnEdicion
+
+            if (supervisor.esCumpleanosHoy()) SaludoCumpleanos(supervisor.primerNombre())
 
             TextButton(onClick = onVerHorario) { Text("Ver horario publicado") }
 

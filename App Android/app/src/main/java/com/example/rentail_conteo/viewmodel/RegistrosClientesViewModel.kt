@@ -5,39 +5,58 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Patterns
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.rentail_conteo.data.AccesoRepository
+import com.example.rentail_conteo.data.CompraRepository
 import com.example.rentail_conteo.data.ConvertidorImagen
-import com.example.rentail_conteo.data.RinconSurDbHelper
+import com.example.rentail_conteo.data.remote.CompraRequest
 import com.example.rentail_conteo.model.AccesoItem
+import com.example.rentail_conteo.model.Opcion
 import com.example.rentail_conteo.model.PersonaIngreso
 import com.example.rentail_conteo.model.RegistrosClientesUIState
-import com.example.rentail_conteo.util.Fechas
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class RegistrosClientesViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = RinconSurDbHelper.obtener(application)
+    private val accesoRepositorio = AccesoRepository()
+    private val compraRepositorio = CompraRepository()
 
     private val _uiState = MutableStateFlow(RegistrosClientesUIState())
     val uiState: StateFlow<RegistrosClientesUIState> = _uiState.asStateFlow()
 
     init {
-        _uiState.update { it.copy(accesosDisponibles = db.listarAccesos()) }
+        viewModelScope.launch {
+            try {
+                val catalogos = accesoRepositorio.catalogos()
+                val accesos = accesoRepositorio.listar()
+                _uiState.update {
+                    it.copy(
+                        rangos = catalogos.rangos.map { o -> Opcion(o.id, o.nombre) },
+                        colores = catalogos.colores.map { o -> Opcion(o.id, o.nombre) },
+                        accesosDisponibles = accesos
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(mensaje = e.message) }
+            }
+        }
         buscar()
     }
 
-    fun onFiltroRango(valor: String) {
+    fun onFiltroRango(valor: Opcion) {
         _uiState.update { it.copy(filtroRango = if (it.filtroRango == valor) null else valor) }
         buscar()
     }
 
-    fun onFiltroColor(valor: String) {
+    fun onFiltroColor(valor: Opcion) {
         _uiState.update { it.copy(filtroColor = if (it.filtroColor == valor) null else valor) }
         buscar()
     }
 
-    fun onFiltroColorAbajo(valor: String) {
+    fun onFiltroColorAbajo(valor: Opcion) {
         _uiState.update { it.copy(filtroColorAbajo = if (it.filtroColorAbajo == valor) null else valor) }
         buscar()
     }
@@ -59,15 +78,22 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
 
     private fun buscar() {
         val estado = _uiState.value
-        val candidatos = db.buscarCandidatos(
-            rangoEtario = estado.filtroRango,
-            colorArriba = estado.filtroColor,
-            colorAbajo = estado.filtroColorAbajo,
-            idAcceso = estado.filtroAcceso?.id?.toLong(),
-            fecha = estado.filtroFecha,
-            franja = estado.filtroFranja
-        )
-        _uiState.update { it.copy(candidatos = candidatos) }
+        _uiState.update { it.copy(cargando = true) }
+        viewModelScope.launch {
+            try {
+                val candidatos = accesoRepositorio.candidatos(
+                    idRango = estado.filtroRango?.id,
+                    idColorSuperior = estado.filtroColor?.id,
+                    idColorInferior = estado.filtroColorAbajo?.id,
+                    idAcceso = estado.filtroAcceso?.id?.toLong(),
+                    fecha = estado.filtroFecha,
+                    franja = estado.filtroFranja
+                )
+                _uiState.update { it.copy(candidatos = candidatos, cargando = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(cargando = false, mensaje = e.message) }
+            }
+        }
     }
 
     fun onElegirPersona(persona: PersonaIngreso) {
@@ -77,11 +103,14 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
     fun onCancelar() {
         _uiState.update {
             it.copy(
-                personaElegida = null, nombreCliente = "", correoCliente = "", fotoBoleta = null,
-                errorNombre = null, errorCorreo = null, errorFoto = null
+                personaElegida = null, numeroBoleta = "", nombreCliente = "", correoCliente = "", fotoBoleta = null,
+                errorBoleta = null, errorNombre = null, errorCorreo = null, errorFoto = null
             )
         }
     }
+
+    fun onBoletaCambia(valor: String) =
+        _uiState.update { it.copy(numeroBoleta = valor.trim().uppercase(), errorBoleta = null) }
 
     fun onNombreCambia(valor: String) = _uiState.update { it.copy(nombreCliente = valor, errorNombre = null) }
 
@@ -102,8 +131,15 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
     fun onGuardar(idCajero: Long) {
         val estado = _uiState.value
         val persona = estado.personaElegida ?: return
+        if (estado.guardando) return
         val nombre = estado.nombreCliente.trim()
 
+        val errorBoleta = when {
+            estado.numeroBoleta.isBlank() -> "El número de boleta es obligatorio"
+            !estado.numeroBoleta.all { it.isLetterOrDigit() || it == '-' } -> "Solo letras, números y guion"
+            estado.numeroBoleta.length > 20 -> "Máximo 20 caracteres"
+            else -> null
+        }
         val errorNombre = when {
             nombre.isEmpty() -> null
             !nombre.all { it.isLetter() || it == ' ' } -> "El nombre solo puede tener letras"
@@ -117,33 +153,40 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
         }
         val errorFoto = if (estado.fotoBoleta == null) "Saca o elige la foto de la boleta" else null
 
-        _uiState.update { it.copy(errorNombre = errorNombre, errorCorreo = errorCorreo, errorFoto = errorFoto) }
-        if (errorNombre != null || errorCorreo != null || estado.fotoBoleta == null) return
-
-        val archivo = ConvertidorImagen.guardar(
-            getApplication(), estado.fotoBoleta, "boleta_${persona.id}_${System.currentTimeMillis()}.jpg"
-        )
-        if (archivo == null) {
-            _uiState.update { it.copy(errorFoto = "No se pudo guardar la foto. Inténtalo de nuevo") }
-            return
+        _uiState.update {
+            it.copy(errorBoleta = errorBoleta, errorNombre = errorNombre, errorCorreo = errorCorreo, errorFoto = errorFoto)
         }
+        if (errorBoleta != null || errorNombre != null || errorCorreo != null || estado.fotoBoleta == null) return
 
-        val ok = db.registrarCompra(
-            idPersona = persona.id,
-            idCajero = idCajero,
-            fechaHora = Fechas.ahora(),
-            nombreCliente = nombre.ifEmpty { null },
-            correoCliente = estado.correoCliente.ifEmpty { null },
-            rutaBoleta = archivo.absolutePath
-        )
-        if (!ok) {
-            archivo.delete()
-            _uiState.update { it.copy(mensaje = "Esta persona ya tenía una compra registrada") }
-            return
+        val bytes = ConvertidorImagen.aBytes(estado.fotoBoleta)
+        _uiState.update { it.copy(guardando = true) }
+        viewModelScope.launch {
+            try {
+                if (compraRepositorio.boletaYaRegistrada(estado.numeroBoleta)) {
+                    _uiState.update { it.copy(guardando = false, errorBoleta = "Ese número de boleta ya está registrado") }
+                    return@launch
+                }
+                val compra = compraRepositorio.registrar(
+                    CompraRequest(
+                        idPersona = persona.id,
+                        idCajero = idCajero,
+                        numeroBoleta = estado.numeroBoleta,
+                        nombreCliente = nombre.ifEmpty { null },
+                        correoCliente = estado.correoCliente.ifEmpty { null }
+                    )
+                )
+                val mensaje = try {
+                    compraRepositorio.subirBoleta(compra.id, bytes)
+                    "Compra registrada"
+                } catch (e: Exception) {
+                    "Compra registrada, pero no se pudo subir la foto de la boleta"
+                }
+                onCancelar()
+                _uiState.update { it.copy(guardando = false, mensaje = mensaje) }
+                buscar()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(guardando = false, mensaje = e.message) }
+            }
         }
-
-        onCancelar()
-        _uiState.update { it.copy(mensaje = "Compra registrada") }
-        buscar()
     }
 }

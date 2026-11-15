@@ -10,19 +10,16 @@ data class PersonaIngreso(
     val altura: String,
     val colorRopa: String,
     val colorRopaAbajo: String,
-    val acompanado: Boolean,
+    val compania: String,
     val detalle: String = "",
     val compro: Boolean = false
 ) {
-    fun resumen(): String {
-        val compania = if (acompanado) "Acompañado" else "Solo"
-        return "$rangoEtario · Altura ${altura.lowercase()} · " +
+    fun resumen(): String =
+        "$rangoEtario · Altura ${altura.lowercase()} · " +
                 "Arriba ${colorRopa.lowercase()}, abajo ${colorRopaAbajo.lowercase()} · $compania"
-    }
 }
 
-object Opciones {
-    val rangosEtarios = listOf("Niño (0-12)", "Joven (13-25)", "Adulto (26-40)", "Adulto (41-60)", "Mayor (60+)")
-    val alturas = listOf("Baja", "Media", "Alta")
-    val coloresRopa = listOf("Negro", "Blanco", "Gris", "Azul", "Rojo", "Verde", "Amarillo", "Café", "Otro")
-}
+data class Opcion(
+    val id: Long,
+    val nombre: String
+)

@@ -1,8 +1,13 @@
 package com.example.rentail_conteo.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import com.example.rentail_conteo.data.RinconSurDbHelper
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.rentail_conteo.data.TurnoRepository
+import com.example.rentail_conteo.data.UsuarioRepository
+import com.example.rentail_conteo.data.remote.FranjaResponse
+import com.example.rentail_conteo.data.remote.PuestoResponse
+import com.example.rentail_conteo.data.remote.SolicitudRequest
+import com.example.rentail_conteo.data.remote.TurnoRequest
 import com.example.rentail_conteo.model.Turno
 import com.example.rentail_conteo.model.TurnosUIState
 import com.example.rentail_conteo.model.Usuario
@@ -11,20 +16,34 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-class TurnosViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = RinconSurDbHelper.obtener(application)
+class TurnosViewModel : ViewModel() {
+    private val turnoRepositorio = TurnoRepository()
+    private val usuarioRepositorio = UsuarioRepository()
 
-    private val _uiState = MutableStateFlow(
-        TurnosUIState(
-            trabajadores = db.listarTrabajadores(),
-            puestos = listOf(Turno.PUESTO_CAJA) + db.listarAccesos(soloActivos = true).map { it.codigo }
-        )
-    )
+    private var franjas: List<FranjaResponse> = emptyList()
+    private var puestos: List<PuestoResponse> = emptyList()
+
+    private val _uiState = MutableStateFlow(TurnosUIState())
     val uiState: StateFlow<TurnosUIState> = _uiState.asStateFlow()
 
     init {
+        cargarCatalogos()
         onSemanaElegida(proxima = true)
+    }
+
+    private fun cargarCatalogos() {
+        viewModelScope.launch {
+            try {
+                franjas = turnoRepositorio.franjas()
+                puestos = turnoRepositorio.puestos()
+                val trabajadores = usuarioRepositorio.listar("TRABAJADOR")
+                _uiState.update { it.copy(trabajadores = trabajadores, puestos = puestos.map { p -> p.codigo }) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(mensaje = e.message) }
+            }
+        }
     }
 
     fun onSemanaElegida(proxima: Boolean) {
@@ -74,11 +93,15 @@ class TurnosViewModel(application: Application) : AndroidViewModel(application) 
     fun onCancelarModificacion() = _uiState.update { it.sinFormulario() }
 
     fun onQuitarBorrador(turno: Turno) {
-        val ok = db.borrarTurnoBorrador(turno.id)
-        _uiState.update {
-            it.copy(mensaje = if (ok) "Turno de ${turno.nombreTrabajador} quitado" else "Solo se pueden quitar turnos en borrador")
+        viewModelScope.launch {
+            try {
+                turnoRepositorio.eliminar(turno.id)
+                _uiState.update { it.copy(mensaje = "Turno de ${turno.nombreTrabajador} quitado") }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(mensaje = e.message) }
+            }
+            recargar()
         }
-        recargar()
     }
 
     fun onPedirPublicar() {
@@ -93,14 +116,18 @@ class TurnosViewModel(application: Application) : AndroidViewModel(application) 
 
     fun onConfirmarPublicar() {
         val dias = _uiState.value.diasSemana
-        val publicados = db.publicarTurnos(dias.first(), dias.last())
-        _uiState.update {
-            it.copy(
-                pidiendoPublicar = false,
-                mensaje = "Horario publicado: $publicados turno(s). Los trabajadores ya pueden verlo"
-            )
+        _uiState.update { it.copy(pidiendoPublicar = false, mensaje = "Publicando y enviando el horario por correo...") }
+        viewModelScope.launch {
+            try {
+                val resultado = turnoRepositorio.publicar(dias.first(), dias.last())
+                val correo = if (resultado.correoEnviado) "y se envió por correo a ${resultado.destinatarios} persona(s)"
+                else "pero no se pudo enviar el correo"
+                _uiState.update { it.copy(mensaje = "Horario publicado: ${resultado.publicados} turno(s) $correo") }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(mensaje = e.message) }
+            }
+            recargar()
         }
-        recargar()
     }
 
     fun onGuardar(idSupervisor: Long) {
@@ -136,63 +163,55 @@ class TurnosViewModel(application: Application) : AndroidViewModel(application) 
         }
         if (errorTrabajador != null || errorFranja != null || errorPuesto != null) return
 
-        if (enEdicion != null) {
-            guardarModificacion(enEdicion, trabajador!!, franja!!, puesto!!, idSupervisor)
+        val idFranja = franjas.firstOrNull { it.nombre == franja }?.id
+        val idPuesto = puestos.firstOrNull { it.codigo == puesto }?.id
+        if (idFranja == null || idPuesto == null) {
+            _uiState.update { it.copy(mensaje = "No se pudieron cargar las franjas y puestos. Vuelve a entrar") }
             return
         }
 
-        val id = db.insertarTurno(trabajador!!.id, idSupervisor, estado.diaElegido, franja!!, puesto!!)
-        if (id == -1L) {
-            _uiState.update { it.copy(mensaje = "No se pudo guardar el turno") }
-            return
-        }
-        _uiState.update {
-            it.copy(
-                mensaje = "Borrador: ${trabajador.primerNombre()}, ${Fechas.diaCorto(it.diaElegido)}, $franja, " +
-                        legible(puesto) + ". Recuerda publicar la semana"
-            ).sinFormulario()
-        }
-        recargar()
-    }
-
-    private fun guardarModificacion(
-        turno: Turno, trabajador: Usuario, franja: String, puesto: String, idSupervisor: Long
-    ) {
-        if (turno.idUsuario == trabajador.id && turno.franja == franja && turno.puesto == puesto) {
-            _uiState.update { it.copy(mensaje = "No cambiaste nada del turno") }
-            return
-        }
-
-        if (turno.esBorrador) {
-            val ok = db.actualizarTurno(turno.id, trabajador.id, franja, puesto)
-            _uiState.update {
-                it.copy(mensaje = if (ok) "Borrador actualizado" else "No se pudo modificar el turno").sinFormulario()
+        viewModelScope.launch {
+            try {
+                val mensaje = when {
+                    enEdicion == null -> {
+                        turnoRepositorio.crear(TurnoRequest(trabajador!!.id, idSupervisor, estado.diaElegido, idFranja, idPuesto))
+                        "Borrador: ${trabajador.primerNombre()}, ${Fechas.diaCorto(estado.diaElegido)}, $franja, " +
+                                legible(puesto!!) + ". Recuerda publicar la semana"
+                    }
+                    enEdicion.idUsuario == trabajador!!.id && enEdicion.franja == franja && enEdicion.puesto == puesto ->
+                        "No cambiaste nada del turno"
+                    enEdicion.esBorrador -> {
+                        turnoRepositorio.editar(enEdicion.id, TurnoRequest(trabajador.id, idSupervisor, enEdicion.fecha, idFranja, idPuesto))
+                        "Borrador actualizado"
+                    }
+                    else -> {
+                        turnoRepositorio.crearSolicitud(SolicitudRequest(enEdicion.id, idSupervisor, trabajador.id, idFranja, idPuesto))
+                        val quienes = if (enEdicion.idUsuario == trabajador.id) trabajador.primerNombre()
+                        else "${enEdicion.nombreTrabajador.substringBefore(" ")} y ${trabajador.primerNombre()}"
+                        "Solicitud enviada por correo. El cambio se aplica cuando $quienes lo acepten"
+                    }
+                }
+                _uiState.update { it.copy(mensaje = mensaje).sinFormulario() }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(mensaje = e.message) }
             }
             recargar()
-            return
         }
-
-        val id = db.crearSolicitudCambio(turno.id, idSupervisor, trabajador.id, franja, puesto)
-        val quienes = if (turno.idUsuario == trabajador.id) {
-            trabajador.primerNombre()
-        } else {
-            "${turno.nombreTrabajador.substringBefore(" ")} y ${trabajador.primerNombre()}"
-        }
-        _uiState.update {
-            it.copy(
-                mensaje = if (id == -1L) "No se pudo enviar la solicitud"
-                else "Solicitud enviada. El cambio se aplica cuando $quienes lo acepten"
-            ).sinFormulario()
-        }
-        recargar()
     }
 
     private fun recargar() {
-        _uiState.update {
-            it.copy(
-                turnosDelDia = db.listarTurnos(it.diaElegido),
-                borradoresSemana = db.contarBorradores(it.diasSemana.first(), it.diasSemana.last())
-            )
+        val estado = _uiState.value
+        if (estado.diasSemana.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val delDia = turnoRepositorio.delDia(estado.diaElegido)
+                val semana = turnoRepositorio.semana(estado.diasSemana.first(), estado.diasSemana.last(), soloPublicados = false)
+                _uiState.update {
+                    it.copy(turnosDelDia = delDia, borradoresSemana = semana.count { turno -> turno.esBorrador })
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(mensaje = e.message) }
+            }
         }
     }
 

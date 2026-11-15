@@ -18,6 +18,10 @@ object Permisos {
 
     val NOTIFICACIONES: String = Manifest.permission.POST_NOTIFICATIONS
 
+    const val RED_LOCAL: String = "android.permission.ACCESS_LOCAL_NETWORK"
+
+    fun necesitaRedLocal(): Boolean = Build.VERSION.SDK_INT >= 37
+
     fun tiene(context: Context, permiso: String): Boolean =
         ContextCompat.checkSelfPermission(context, permiso) == PackageManager.PERMISSION_GRANTED
 

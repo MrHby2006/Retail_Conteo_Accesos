@@ -1,6 +1,7 @@
 package com.example.rentail_conteo.model
 
 data class InicioTrabajadorUIState(
+    val cargando: Boolean = false,
     val turnoHoy: Turno? = null,
     val proximoTurno: Turno? = null,
     val solicitudes: List<SolicitudCambio> = emptyList(),

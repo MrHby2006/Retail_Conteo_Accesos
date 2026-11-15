@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.example.rentail_conteo.model.AccesoItem
 import com.example.rentail_conteo.model.FilaIndicador
+import com.example.rentail_conteo.model.Franjas
 import com.example.rentail_conteo.model.PersonaIngreso
 import com.example.rentail_conteo.model.SolicitudCambio
 import com.example.rentail_conteo.model.Turno
@@ -18,7 +19,7 @@ class RinconSurDbHelper(context: Context) :
     SQLiteOpenHelper(context, NOMBRE_BD, null, VERSION_BD) {
     companion object {
         private const val NOMBRE_BD = "rinconsur.db"
-        private const val VERSION_BD = 6
+        private const val VERSION_BD = 7
 
         @Volatile private var instancia: RinconSurDbHelper? = null
 
@@ -45,7 +46,35 @@ class RinconSurDbHelper(context: Context) :
                     "id_rol INTEGER NOT NULL REFERENCES roles(id_rol), " +
                     "correo_personal TEXT, " +
                     "sal TEXT NOT NULL DEFAULT '', " +
-                    "debe_cambiar_contrasena INTEGER NOT NULL DEFAULT 0)"
+                    "debe_cambiar_contrasena INTEGER NOT NULL DEFAULT 0, " +
+                    "foto_perfil TEXT, " +
+                    "fecha_nacimiento TEXT)"
+
+        private const val SQL_CREAR_CODIGOS =
+            "CREATE TABLE codigos_recuperacion (" +
+                    "id_codigo INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "id_usuario INTEGER NOT NULL REFERENCES usuarios(id_usuario), " +
+                    "codigo TEXT NOT NULL, " +
+                    "expira TEXT NOT NULL, " +
+                    "usado INTEGER NOT NULL DEFAULT 0)"
+
+        private const val SQL_AGREGAR_FOTO_PERFIL =
+            "ALTER TABLE usuarios ADD COLUMN foto_perfil TEXT"
+
+        private const val SQL_AGREGAR_FECHA_NACIMIENTO =
+            "ALTER TABLE usuarios ADD COLUMN fecha_nacimiento TEXT"
+
+        private const val SQL_AGREGAR_CORREO =
+            "ALTER TABLE usuarios ADD COLUMN correo TEXT NOT NULL DEFAULT ''"
+
+        private const val SQL_LLENAR_CORREOS =
+            "UPDATE usuarios SET correo = CASE codigo " +
+                    "WHEN 'C-01' THEN 'carolina@rinconsur.cl' WHEN 'C-02' THEN 'rodrigo@rinconsur.cl' " +
+                    "WHEN 'C-03' THEN 'daniela@rinconsur.cl' WHEN 'C-04' THEN 'matias@rinconsur.cl' " +
+                    "WHEN 'C-05' THEN 'tamara@rinconsur.cl' WHEN 'C-06' THEN 'felipe@rinconsur.cl' " +
+                    "WHEN 'C-07' THEN 'javiera@rinconsur.cl' WHEN 'C-08' THEN 'ignacio@rinconsur.cl' " +
+                    "WHEN 'C-09' THEN 'valentina@rinconsur.cl' WHEN 'C-10' THEN 'sebastian@rinconsur.cl' " +
+                    "ELSE lower(codigo) || '@rinconsur.cl' END"
 
         private const val SQL_CREAR_ACCESOS =
             "CREATE TABLE accesos (" +
@@ -161,6 +190,12 @@ class RinconSurDbHelper(context: Context) :
                     "('C-09', 'Valentina Reyes Lagos', '203451180', 'valentina@rinconsur.cl', '123456', 'Cajera, Cajas Centrales', 3), " +
                     "('C-10', 'Sebastián Castillo Mora', '167894550', 'sebastian@rinconsur.cl', '123456', 'Vendedor, Electro', 3)"
 
+        private const val SQL_PRECARGAR_TRABAJADORES_V3 =
+            "INSERT INTO usuarios (codigo, nombre, rut, contrasena, cargo, id_rol) VALUES " +
+                    "('C-08','Ignacio Navarro Pérez', '178902342', '123456', 'Vendedor, Deportes', 3), " +
+                    "('C-09', 'Valentina Reyes Lagos', '203451180', '123456', 'Cajera, Cajas Centrales', 3), " +
+                    "('C-10', 'Sebastián Castillo Mora', '167894550', '123456', 'Vendedor, Electro', 3)"
+
         private const val SQL_PRECARGAR_ACCESOS =
             "INSERT INTO accesos (id_acceso, codigo, nombre, ubicacion) VALUES " +
                     "(1, 'A1', 'Acceso Principal', 'Frente al pasillo central del mall'), " +
@@ -213,6 +248,7 @@ class RinconSurDbHelper(context: Context) :
         db.execSQL(SQL_CREAR_TURNOS)
         db.execSQL(SQL_AGREGAR_ESTADO_TURNOS)
         db.execSQL(SQL_CREAR_SOLICITUDES)
+        db.execSQL(SQL_CREAR_CODIGOS)
 
         db.execSQL(SQL_PRECARGAR_ROLES)
         db.execSQL(SQL_PRECARGAR_USUARIOS)
@@ -237,10 +273,15 @@ class RinconSurDbHelper(context: Context) :
             db.execSQL(SQL_CREAR_TURNOS)
         }
         if (oldVersion < 3) {
-            db.execSQL(SQL_PRECARGAR_TRABAJADORES_NUEVOS)
+            db.execSQL(SQL_PRECARGAR_TRABAJADORES_V3)
         }
         if (oldVersion < 4) {
             db.execSQL(SQL_AGREGAR_COLOR_ABAJO)
+        }
+        if (oldVersion < 5) {
+            db.execSQL(SQL_AGREGAR_ACTIVA_ACCESOS)
+            db.execSQL(SQL_AGREGAR_CORREO)
+            db.execSQL(SQL_LLENAR_CORREOS)
         }
         if (oldVersion < 6) {
             db.execSQL(SQL_AGREGAR_CORREO_PERSONAL)
@@ -253,6 +294,11 @@ class RinconSurDbHelper(context: Context) :
             db.execSQL(SQL_AGREGAR_ESTADO_TURNOS)
             db.execSQL(SQL_CREAR_SOLICITUDES)
             protegerContrasenas(db)
+        }
+        if (oldVersion < 7) {
+            db.execSQL(SQL_AGREGAR_FOTO_PERFIL)
+            db.execSQL(SQL_AGREGAR_FECHA_NACIMIENTO)
+            db.execSQL(SQL_CREAR_CODIGOS)
         }
     }
 
@@ -271,11 +317,11 @@ class RinconSurDbHelper(context: Context) :
         }
     }
 
-    fun buscarUsuarioParaLogin(correo: String, contrasena: String): Usuario? {
+    fun buscarUsuarioParaLogin(rutLimpio: String, contrasena: String): Usuario? {
         var usuario: Usuario? = null
         readableDatabase.rawQuery(
-            "SELECT * FROM usuarios WHERE correo = ? AND activo = 1",
-            arrayOf(correo.trim().lowercase())
+            "SELECT * FROM usuarios WHERE rut = ? AND activo = 1",
+            arrayOf(rutLimpio)
         ).use { cursor ->
             if (cursor.moveToFirst()) {
                 val sal = cursor.getString(cursor.getColumnIndexOrThrow("sal"))
@@ -283,6 +329,15 @@ class RinconSurDbHelper(context: Context) :
                 if (Seguridad.coincide(contrasena, sal, hashGuardado)) usuario = leerUsuario(cursor)
             }
         }
+        return usuario
+    }
+
+    fun buscarUsuarioPorRut(rutLimpio: String): Usuario? {
+        var usuario: Usuario? = null
+        readableDatabase.rawQuery("SELECT * FROM usuarios WHERE rut = ? AND activo = 1", arrayOf(rutLimpio))
+            .use { cursor ->
+                if (cursor.moveToFirst()) usuario = leerUsuario(cursor)
+            }
         return usuario
     }
 
@@ -298,11 +353,11 @@ class RinconSurDbHelper(context: Context) :
     fun listarAccesos(soloActivos: Boolean = false): List<AccesoItem> {
         val lista = mutableListOf<AccesoItem>()
         val sql = if (soloActivos) {
-            "SELECT * FROM accesos WHERE activada = 1 ORDER BY id_accseso"
+            "SELECT * FROM accesos WHERE activada = 1 ORDER BY id_acceso"
         } else {
             "SELECT * FROM accesos ORDER BY id_acceso"
         }
-        readableDatabase.rawQuery("SELECT * FROM accesos ORDER BY id_acceso", null).use { cursor ->
+        readableDatabase.rawQuery(sql, null).use { cursor ->
             while (cursor.moveToNext()) {
                 lista.add(
                     AccesoItem(
@@ -326,7 +381,7 @@ class RinconSurDbHelper(context: Context) :
             put("altura", persona.altura)
             put("color_ropa", persona.colorRopa)
             put("color_ropa_abajo", persona.colorRopaAbajo)
-            put("acompanado", if (persona.acompanado) 1 else 0)
+            put("acompanado", if (persona.compania == "Sola") 0 else 1)
             put("detalle", persona.detalle)
         }
         return writableDatabase.insert("personas_ingreso", null, valores)
@@ -361,12 +416,16 @@ class RinconSurDbHelper(context: Context) :
             args.add(colorAbajo)
         }
         if (idAcceso != null) {
-            sql += " AND p.fecha_hora LIKE ?"
+            sql += " AND p.id_acceso = ?"
             args.add(idAcceso.toString())
         }
         if (fecha != null) {
             sql += " AND p.fecha_hora LIKE ?"
             args.add("$fecha%")
+        }
+        if (franja != null) {
+            sql += if (franja == Franjas.MANANA) " AND substr(p.fecha_hora, 12, 5) < ?" else " AND substr(p.fecha_hora, 12, 5) >= ?"
+            args.add(Franjas.CAMBIO)
         }
         sql += " ORDER BY p.fecha_hora DESC"
 
@@ -663,8 +722,25 @@ class RinconSurDbHelper(context: Context) :
     fun correoEmpresaEnUso(correo: String): Boolean =
         existe("SELECT 1 FROM usuarios WHERE correo = ?", correo.trim().lowercase())
 
-    fun correoPersonalEnUso(correo: String): Boolean =
-        existe("SELECT 1 FROM usuarios WHERE correo_personal = ?", correo.trim().lowercase())
+    fun correoPersonalEnUso(correo: String, exceptoId: Long = -1): Boolean {
+        var enUso = false
+        readableDatabase.rawQuery(
+            "SELECT 1 FROM usuarios WHERE correo_personal = ? AND id_usuario <> ?",
+            arrayOf(correo.trim().lowercase(), exceptoId.toString())
+        ).use { cursor -> enUso = cursor.moveToFirst() }
+        return enUso
+    }
+
+    fun correosPersonalesActivos(): List<String> {
+        val lista = mutableListOf<String>()
+        readableDatabase.rawQuery(
+            "SELECT correo_personal FROM usuarios WHERE activo = 1 AND correo_personal IS NOT NULL AND correo_personal <> ''",
+            null
+        ).use { cursor ->
+            while (cursor.moveToNext()) lista.add(cursor.getString(0))
+        }
+        return lista
+    }
 
     private fun siguienteCodigo(): String {
         var mayor = 0
@@ -723,12 +799,82 @@ class RinconSurDbHelper(context: Context) :
         return coincide
     }
 
-    fun cambiarContrasena(idUsuario: Long, nueva: String): Boolean {
+    fun cambiarContrasena(idUsuario: Long, nueva: String, esTemporal: Boolean = false): Boolean {
         val sal = Seguridad.nuevaSal()
         val valores = ContentValues().apply {
             put("sal", sal)
             put("contrasena", Seguridad.hash(nueva, sal))
-            put("debe_cambiar_contrasena", 0)
+            put("debe_cambiar_contrasena", if (esTemporal) 1 else 0)
+        }
+        return writableDatabase.update("usuarios", valores, "id_usuario = ?", arrayOf(idUsuario.toString())) == 1
+    }
+
+    fun guardarCodigoRecuperacion(idUsuario: Long, codigo: String, expira: String): Boolean {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.update(
+                "codigos_recuperacion", ContentValues().apply { put("usado", 1) },
+                "id_usuario = ? AND usado = 0", arrayOf(idUsuario.toString())
+            )
+            val valores = ContentValues().apply {
+                put("id_usuario", idUsuario)
+                put("codigo", codigo)
+                put("expira", expira)
+            }
+            if (db.insert("codigos_recuperacion", null, valores) == -1L) return false
+            db.setTransactionSuccessful()
+            return true
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    fun restablecerContrasena(idUsuario: Long, codigo: String, nueva: String, ahora: String): Boolean {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            var idCodigo = -1L
+            db.rawQuery(
+                "SELECT id_codigo FROM codigos_recuperacion " +
+                        "WHERE id_usuario = ? AND codigo = ? AND usado = 0 AND expira >= ?",
+                arrayOf(idUsuario.toString(), codigo, ahora)
+            ).use { cursor ->
+                if (cursor.moveToFirst()) idCodigo = cursor.getLong(0)
+            }
+            if (idCodigo == -1L) return false
+
+            db.update(
+                "codigos_recuperacion", ContentValues().apply { put("usado", 1) },
+                "id_codigo = ?", arrayOf(idCodigo.toString())
+            )
+            if (!cambiarContrasena(idUsuario, nueva)) return false
+            db.setTransactionSuccessful()
+            return true
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    fun actualizarPerfil(idUsuario: Long, correoPersonal: String, fechaNacimiento: String?): Boolean {
+        val valores = ContentValues().apply {
+            put("correo_personal", correoPersonal.trim().lowercase())
+            put("fecha_nacimiento", fechaNacimiento)
+        }
+        return writableDatabase.update("usuarios", valores, "id_usuario = ?", arrayOf(idUsuario.toString())) == 1
+    }
+
+    fun actualizarFotoPerfil(idUsuario: Long, ruta: String): Boolean {
+        val valores = ContentValues().apply { put("foto_perfil", ruta) }
+        return writableDatabase.update("usuarios", valores, "id_usuario = ?", arrayOf(idUsuario.toString())) == 1
+    }
+
+    fun actualizarEmpleado(idUsuario: Long, nombre: String, cargo: String, rolId: Long, correoPersonal: String): Boolean {
+        val valores = ContentValues().apply {
+            put("nombre", nombre.trim())
+            put("cargo", cargo.trim())
+            put("id_rol", rolId)
+            put("correo_personal", correoPersonal.trim().lowercase())
         }
         return writableDatabase.update("usuarios", valores, "id_usuario = ?", arrayOf(idUsuario.toString())) == 1
     }
@@ -794,17 +940,6 @@ class RinconSurDbHelper(context: Context) :
         return lista
     }
 
-    fun existeCorreo(correo: String): Boolean {
-        var existe = false
-        readableDatabase.rawQuery(
-            "SELECT 1 FROM usuarios WHERE correo = ? AND activo = 1",
-            arrayOf(correo.trim().lowercase())
-        ).use { cursor ->
-            existe = cursor.moveToFirst()
-        }
-        return existe
-    }
-
     private fun leerUsuario(c: Cursor) = Usuario(
         id = c.getLong(c.getColumnIndexOrThrow("id_usuario")),
         codigo = c.getString(c.getColumnIndexOrThrow("codigo")),
@@ -814,7 +949,9 @@ class RinconSurDbHelper(context: Context) :
         cargo = c.getString(c.getColumnIndexOrThrow("cargo")),
         rolId = c.getLong(c.getColumnIndexOrThrow("id_rol")),
         correoPersonal = c.getString(c.getColumnIndexOrThrow("correo_personal")),
-        debeCambiarContrasena = c.getInt(c.getColumnIndexOrThrow("debe_cambiar_contrasena")) == 1
+        debeCambiarContrasena = c.getInt(c.getColumnIndexOrThrow("debe_cambiar_contrasena")) == 1,
+        fotoPerfil = c.getString(c.getColumnIndexOrThrow("foto_perfil")),
+        fechaNacimiento = c.getString(c.getColumnIndexOrThrow("fecha_nacimiento"))
     )
 
     private fun leerTurno(c: Cursor): Turno {
@@ -857,7 +994,7 @@ class RinconSurDbHelper(context: Context) :
         altura = c.getString(c.getColumnIndexOrThrow("altura")),
         colorRopa = c.getString(c.getColumnIndexOrThrow("color_ropa")),
         colorRopaAbajo = c.getString(c.getColumnIndexOrThrow("color_ropa_abajo")),
-        acompanado = c.getInt(c.getColumnIndexOrThrow("acompanado")) == 1,
+        compania = if (c.getInt(c.getColumnIndexOrThrow("acompanado")) == 1) "Acompañado" else "Sola",
         detalle = c.getString(c.getColumnIndexOrThrow("detalle")),
         compro = c.getInt(c.getColumnIndexOrThrow("compro")) == 1
     )
@@ -867,62 +1004,5 @@ class RinconSurDbHelper(context: Context) :
             put("activada", if (activada) 1 else 0)
         }
         return writableDatabase.update("accesos", valores, "id_acceso = ?", arrayOf(idAcceso.toString())) == 1
-    }
-
-    fun listarRoles(): List<Pair<Long, String>> {
-        val roles = mutableListOf<Pair<Long, String>>()
-        readableDatabase.rawQuery("SELECT id_rol, nombre_rol FROM roles ORDER BY id_rol", null).use { cursor ->
-            while (cursor.moveToNext()) {
-                roles.add(
-                    Pair(
-                        cursor.getLong(cursor.getColumnIndexOrThrow("id_rol")),
-                        cursor.getString(cursor.getColumnIndexOrThrow("nombre_rol"))
-                    )
-                )
-            }
-        }
-        return roles
-    }
-
-    fun insertarUsuario(
-        nombre: String,
-        rut: String,
-        correo: String,
-        contrasena: String,
-        cargo: String,
-        idRol: Long
-    ): Boolean {
-        val sal = Seguridad.nuevaSal()
-        val valores = ContentValues().apply {
-            put("codigo", siguienteCodigo())
-            put("nombre", nombre)
-            put("rut", rut)
-            put("correo", correo.lowercase())
-            put("sal", sal)
-            put("contrasena", Seguridad.hash(contrasena, sal))
-            put("debe_cambiar_contrasena", 1)
-            put("cargo", cargo)
-            put("id_rol", idRol)
-            put("activo", 1)
-        }
-        return writableDatabase.insert("usuarios", null, valores) != -1L
-    }
-
-    fun eliminarUsuario(idUsuario: Long): Boolean = desactivarEmpleado(idUsuario)
-
-    fun actualizarUsuario(
-        idUsuario: Long,
-        nombre: String,
-        correo: String,
-        cargo: String,
-        idRol: Long
-    ): Boolean {
-        val valores = ContentValues().apply {
-            put("nombre", nombre)
-            put("correo", correo.lowercase())
-            put("cargo", cargo)
-            put("id_rol", idRol)
-        }
-        return writableDatabase.update("usuarios", valores, "id_usuario = ?", arrayOf(idUsuario.toString())) > 0
     }
 }

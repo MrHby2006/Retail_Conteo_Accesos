@@ -2,13 +2,14 @@ spring:
   application:
     name: ms-turnos
   datasource:
-    url: jdbc:mysql://localhost:3306/rinconsur_turnos?createDatabaseIfNotExist=true
-    username: root
-    password:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/rinconsur_turnos?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=America/Santiago&allowPublicKeyRetrieval=true
+    username: ${DB_USUARIO:root}
+    password: ${DB_CLAVE:}
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+
 server:
   port: 8082
 
@@ -21,4 +22,7 @@ springdoc:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+    instance-id: ms-turnos:${server.port}

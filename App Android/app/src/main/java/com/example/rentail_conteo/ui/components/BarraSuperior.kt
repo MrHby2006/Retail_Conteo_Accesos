@@ -13,7 +13,12 @@ import com.example.rentail_conteo.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BarraSuperior(titulo: String, onCerrarSesion: () -> Unit, onVolver: (() -> Unit)? = null) {
+fun BarraSuperior(
+    titulo: String,
+    onCerrarSesion: (() -> Unit)? = null,
+    onVolver: (() -> Unit)? = null,
+    onPerfil: (() -> Unit)? = null
+) {
     TopAppBar(
         title = { Text(titulo) },
         navigationIcon = {
@@ -24,8 +29,15 @@ fun BarraSuperior(titulo: String, onCerrarSesion: () -> Unit, onVolver: (() -> U
             }
         },
         actions = {
-            IconButton(onClick = onCerrarSesion) {
-                Icon(painterResource(R.drawable.ic_salir), contentDescription = "Cerrar sesión")
+            if (onPerfil != null) {
+                IconButton(onClick = onPerfil) {
+                    Icon(painterResource(R.drawable.ic_persona), contentDescription = "Mi perfil")
+                }
+            }
+            if (onCerrarSesion != null) {
+                IconButton(onClick = onCerrarSesion) {
+                    Icon(painterResource(R.drawable.ic_salir), contentDescription = "Cerrar sesión")
+                }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(

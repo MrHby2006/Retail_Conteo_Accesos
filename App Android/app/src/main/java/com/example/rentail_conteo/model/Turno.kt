@@ -29,8 +29,11 @@ data class Turno(
 object Franjas {
     const val APERTURA = "10:00"
     const val CIERRE = "21:00"
+    const val CAMBIO = "15:30"
+    const val MANANA = "Mañana"
+    const val TARDE = "Tarde"
 
-    val todas = listOf("Mañana", "Tarde")
+    val todas = listOf(MANANA, TARDE)
 
     fun tiendaAbierta(hora: String): Boolean = hora >= APERTURA && hora < CIERRE
 

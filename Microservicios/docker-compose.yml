@@ -1,0 +1,216 @@
+services:
+
+  mysql:
+    image: mysql:8.4
+    container_name: mysql-rinconsur
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: America/Santiago
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - rinconsur-net
+
+  eureka-server:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    restart: on-failure
+    networks:
+      - rinconsur-net
+
+  ms-usuarios:
+    build:
+      context: ./ms-usuarios
+      dockerfile: Dockerfile
+    container_name: ms-usuarios
+    ports:
+      - "8081:8081"
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      TZ: America/Santiago
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USUARIO: root
+      DB_CLAVE: ${MYSQL_ROOT_PASSWORD}
+      FOTOS_CARPETA: /app/fotos
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    restart: on-failure
+    volumes:
+      - fotos-data:/app/fotos
+    networks:
+      - rinconsur-net
+
+  ms-turnos:
+    build:
+      context: ./ms-turnos
+      dockerfile: Dockerfile
+    container_name: ms-turnos
+    ports:
+      - "8082:8082"
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      TZ: America/Santiago
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USUARIO: root
+      DB_CLAVE: ${MYSQL_ROOT_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    restart: on-failure
+    networks:
+      - rinconsur-net
+
+  ms-notificaciones:
+    build:
+      context: ./ms-notificaciones
+      dockerfile: Dockerfile
+    container_name: ms-notificaciones
+    ports:
+      - "8083:8083"
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      TZ: America/Santiago
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USUARIO: root
+      DB_CLAVE: ${MYSQL_ROOT_PASSWORD}
+      MAIL_USUARIO: ${MAIL_USUARIO}
+      MAIL_CLAVE: ${MAIL_CLAVE}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    restart: on-failure
+    networks:
+      - rinconsur-net
+
+  ms-accesos:
+    build:
+      context: ./ms-accesos
+      dockerfile: Dockerfile
+    container_name: ms-accesos
+    ports:
+      - "8084:8084"
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      TZ: America/Santiago
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USUARIO: root
+      DB_CLAVE: ${MYSQL_ROOT_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    restart: on-failure
+    networks:
+      - rinconsur-net
+
+  ms-ventas:
+    build:
+      context: ./ms-ventas
+      dockerfile: Dockerfile
+    container_name: ms-ventas
+    ports:
+      - "8085:8085"
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      TZ: America/Santiago
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USUARIO: root
+      DB_CLAVE: ${MYSQL_ROOT_PASSWORD}
+      BOLETAS_CARPETA: /app/boletas
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    restart: on-failure
+    volumes:
+      - boletas-data:/app/boletas
+    networks:
+      - rinconsur-net
+
+  ms-reportes:
+    build:
+      context: ./ms-reportes
+      dockerfile: Dockerfile
+    container_name: ms-reportes
+    ports:
+      - "8086:8086"
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      TZ: America/Santiago
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USUARIO: root
+      DB_CLAVE: ${MYSQL_ROOT_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    restart: on-failure
+    networks:
+      - rinconsur-net
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      TZ: America/Santiago
+    depends_on:
+      eureka-server:
+        condition: service_started
+      ms-usuarios:
+        condition: service_started
+      ms-turnos:
+        condition: service_started
+      ms-notificaciones:
+        condition: service_started
+      ms-accesos:
+        condition: service_started
+      ms-ventas:
+        condition: service_started
+      ms-reportes:
+        condition: service_started
+    restart: on-failure
+    networks:
+      - rinconsur-net
+
+volumes:
+  mysql-data:
+  boletas-data:
+  fotos-data:
+
+networks:
+  rinconsur-net:
+    driver: bridge

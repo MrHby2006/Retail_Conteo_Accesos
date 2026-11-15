@@ -2,21 +2,46 @@ package com.example.rentail_conteo.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import com.example.rentail_conteo.data.RinconSurDbHelper
+import androidx.lifecycle.viewModelScope
 import com.example.rentail_conteo.data.SesionPreferencias
+import com.example.rentail_conteo.data.UsuarioRepository
 import com.example.rentail_conteo.model.Usuario
 import com.example.rentail_conteo.notificaciones.AvisoTurno
-import com.example.rentail_conteo.util.Fechas
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class SesionViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = RinconSurDbHelper.obtener(application)
+    private val repositorio = UsuarioRepository()
     private val sesion = SesionPreferencias(application)
 
-    private val _usuarioActual = MutableStateFlow(db.buscarUsuarioPorId(sesion.leer()))
+    private val _usuarioActual = MutableStateFlow<Usuario?>(null)
     val usuarioActual: StateFlow<Usuario?> = _usuarioActual.asStateFlow()
+
+    private val _cargando = MutableStateFlow(true)
+    val cargando: StateFlow<Boolean> = _cargando.asStateFlow()
+
+    init {
+        restaurarSesion()
+    }
+
+    private fun restaurarSesion() {
+        val id = sesion.leer()
+        if (id == -1L) {
+            _cargando.value = false
+            return
+        }
+        viewModelScope.launch {
+            try {
+                _usuarioActual.value = repositorio.obtener(id)
+            } catch (e: Exception) {
+                _usuarioActual.value = null
+            } finally {
+                _cargando.value = false
+            }
+        }
+    }
 
     fun iniciarSesion(usuario: Usuario) {
         _usuarioActual.value = usuario
@@ -24,7 +49,7 @@ class SesionViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun cerrarSesion() {
-        _usuarioActual.value?.let { AvisoTurno.cancelarDeHoy(getApplication(), db.turnosDeHoy(it.id, Fechas.hoy())) }
+        AvisoTurno.cancelarTodos(getApplication())
         _usuarioActual.value = null
         sesion.borrar()
     }

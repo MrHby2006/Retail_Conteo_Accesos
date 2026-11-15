@@ -2,13 +2,18 @@ spring:
   application:
     name: ms-ventas
   datasource:
-    url: jdbc:mysql://localhost:3306/rinconsur_ventas?createDatabaseIfNotExist=true
-    username: root
-    password:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/rinconsur_ventas?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=America/Santiago&allowPublicKeyRetrieval=true
+    username: ${DB_USUARIO:root}
+    password: ${DB_CLAVE:}
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
 server:
   port: 8085
 
@@ -21,4 +26,10 @@ springdoc:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+    instance-id: ms-ventas:${server.port}
+
+boletas:
+  carpeta: ${BOLETAS_CARPETA:boletas}

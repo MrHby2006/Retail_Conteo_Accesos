@@ -1,17 +1,18 @@
 package com.example.rentail_conteo.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import com.example.rentail_conteo.data.RinconSurDbHelper
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.rentail_conteo.data.UsuarioRepository
 import com.example.rentail_conteo.model.CambiarContrasenaUIState
 import com.example.rentail_conteo.util.Seguridad
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-class CambiarContrasenaViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = RinconSurDbHelper.obtener(application)
+class CambiarContrasenaViewModel : ViewModel() {
+    private val repositorio = UsuarioRepository()
 
     private val _uiState = MutableStateFlow(CambiarContrasenaUIState())
     val uiState: StateFlow<CambiarContrasenaUIState> = _uiState.asStateFlow()
@@ -23,7 +24,6 @@ class CambiarContrasenaViewModel(application: Application) : AndroidViewModel(ap
     fun onGuardar(idUsuario: Long) {
         val estado = _uiState.value
         val errorNueva = Seguridad.errorContrasenaNueva(estado.nueva)
-            ?: if (db.contrasenaCoincide(idUsuario, estado.nueva)) "Debe ser distinta a la contraseña temporal" else null
         val errorConfirmar = when {
             estado.confirmar.isBlank() -> "Repite la contraseña"
             estado.confirmar != estado.nueva -> "Las contraseñas no coinciden"
@@ -32,10 +32,13 @@ class CambiarContrasenaViewModel(application: Application) : AndroidViewModel(ap
         _uiState.update { it.copy(errorNueva = errorNueva, errorConfirmar = errorConfirmar) }
         if (errorNueva != null || errorConfirmar != null) return
 
-        if (!db.cambiarContrasena(idUsuario, estado.nueva)) {
-            _uiState.update { it.copy(errorNueva = "No se pudo guardar. Inténtalo de nuevo") }
-            return
+        viewModelScope.launch {
+            try {
+                val actualizado = repositorio.cambiarContrasena(idUsuario, "", estado.nueva)
+                _uiState.update { it.copy(usuarioActualizado = actualizado) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorNueva = e.message) }
+            }
         }
-        _uiState.update { it.copy(usuarioActualizado = db.buscarUsuarioPorId(idUsuario)) }
     }
 }

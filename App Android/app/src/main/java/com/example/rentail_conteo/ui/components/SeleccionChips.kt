@@ -12,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.rentail_conteo.model.Opciones
 import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.ui.theme.Rentail_ConteoTheme
 
@@ -50,7 +49,7 @@ private fun SeleccionChipsPreview() {
     Rentail_ConteoTheme {
         SeleccionChips(
             titulo = "Rango de edad",
-            opciones = Opciones.rangosEtarios,
+            opciones = listOf("Joven (13-25)", "Adulto (26-40)", "Mayor (60+)"),
             seleccionada = null,
             onSeleccionar = {},
             textoDe = { it },

@@ -27,11 +27,5 @@ sealed class Ruta(val ruta: String) {
 
     data object RegistrosClientes : Ruta("registroClientes")
 
-    data object ListaTrabajadores : Ruta("listaTrabajadores")
-
-    data object EditarTrabajador : Ruta("editarTrabajador/{idTrabajador}") {
-        fun crearRuta(idTrabajador: Long) = "editarTrabajador/$idTrabajador"
-    }
-
-    data object CrearTrabajador : Ruta("crearTrabajador")
+    data object Perfil : Ruta("perfil")
 }

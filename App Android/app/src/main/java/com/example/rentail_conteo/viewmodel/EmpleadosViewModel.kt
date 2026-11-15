@@ -1,40 +1,84 @@
 package com.example.rentail_conteo.viewmodel
 
-import android.app.Application
 import android.util.Patterns
-import androidx.lifecycle.AndroidViewModel
-import com.example.rentail_conteo.data.RinconSurDbHelper
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.rentail_conteo.data.TurnoRepository
+import com.example.rentail_conteo.data.UsuarioRepository
+import com.example.rentail_conteo.data.remote.EmpleadoRequest
 import com.example.rentail_conteo.model.CuentaCreada
 import com.example.rentail_conteo.model.EmpleadosUIState
 import com.example.rentail_conteo.model.Rol
 import com.example.rentail_conteo.model.Usuario
-import com.example.rentail_conteo.util.Fechas
 import com.example.rentail_conteo.util.GeneradorCorreo
-import com.example.rentail_conteo.util.Seguridad
 import com.example.rentail_conteo.util.ValidadorRut
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-class EmpleadosViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = RinconSurDbHelper.obtener(application)
+class EmpleadosViewModel : ViewModel() {
+    private val repositorio = UsuarioRepository()
+    private val turnoRepositorio = TurnoRepository()
 
-    private val _uiState = MutableStateFlow(EmpleadosUIState(empleados = db.listarEmpleados()))
+    private val _uiState = MutableStateFlow(EmpleadosUIState())
     val uiState: StateFlow<EmpleadosUIState> = _uiState.asStateFlow()
+
+    init {
+        cargarEmpleados()
+    }
+
+    fun cargarEmpleados() {
+        _uiState.update { it.copy(cargando = true) }
+        viewModelScope.launch {
+            try {
+                val empleados = repositorio.listar()
+                    .sortedWith(compareBy({ it.rolId }, { it.nombre }))
+                _uiState.update { it.copy(empleados = empleados, cargando = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(cargando = false, mensaje = e.message) }
+            }
+        }
+    }
 
     fun onMostrarFormulario() = _uiState.update { EmpleadosUIState(empleados = it.empleados, mostrandoFormulario = true) }
 
     fun onCancelarFormulario() = _uiState.update { EmpleadosUIState(empleados = it.empleados) }
 
-    fun onNombreCambia(valor: String) = _uiState.update {
-        it.copy(
-            nombre = valor,
-            errorNombre = null,
-            correoEmpresaSugerido = if (valor.trim().contains(" ")) {
-                GeneradorCorreo.generar(valor) { correo -> db.correoEmpresaEnUso(correo) }
-            } else ""
+    fun onEditar(empleado: Usuario) = _uiState.update {
+        EmpleadosUIState(
+            empleados = it.empleados,
+            mostrandoFormulario = true,
+            enEdicion = empleado,
+            nombres = empleado.nombres,
+            apellidoPaterno = empleado.apellidoPaterno,
+            apellidoMaterno = empleado.apellidoMaterno ?: "",
+            rut = empleado.rutFormateado(),
+            cargo = empleado.cargo,
+            rolElegido = empleado.rolId,
+            correoPersonal = empleado.correoPersonal ?: ""
         )
+    }
+
+    fun onNombresCambia(valor: String) = _uiState.update {
+        it.copy(nombres = valor, errorNombres = null).conCorreoSugerido()
+    }
+
+    fun onApellidoPaternoCambia(valor: String) = _uiState.update {
+        it.copy(apellidoPaterno = valor, errorApellidoPaterno = null).conCorreoSugerido()
+    }
+
+    fun onApellidoMaternoCambia(valor: String) =
+        _uiState.update { it.copy(apellidoMaterno = valor, errorApellidoMaterno = null) }
+
+    private fun EmpleadosUIState.conCorreoSugerido(): EmpleadosUIState {
+        val primerNombre = nombres.trim().substringBefore(" ")
+        val apellido = apellidoPaterno.trim().substringBefore(" ")
+        val sugerido = if (enEdicion == null && primerNombre.isNotBlank() && apellido.isNotBlank()) {
+            GeneradorCorreo.base("$primerNombre $apellido") + "@" + GeneradorCorreo.DOMINIO
+        } else ""
+        return copy(correoEmpresaSugerido = sugerido)
     }
 
     fun onRutCambia(valor: String) = _uiState.update { it.copy(rut = valor.trim(), errorRut = null) }
@@ -50,21 +94,29 @@ class EmpleadosViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun onCerrarCuentaCreada() = _uiState.update { it.copy(cuentaCreada = null) }
 
+    private fun errorTexto(valor: String, campo: String, obligatorio: Boolean): String? = when {
+        valor.isBlank() -> if (obligatorio) "$campo es obligatorio" else null
+        !valor.all { it.isLetter() || it == ' ' } -> "Solo letras y espacios"
+        valor.length > 40 -> "Máximo 40 caracteres"
+        else -> null
+    }
+
     fun onGuardar() {
         val estado = _uiState.value
-        val nombre = estado.nombre.trim().replace(Regex("\\s+"), " ")
+        val enEdicion = estado.enEdicion
+        val nombres = estado.nombres.trim().replace(Regex("\\s+"), " ")
+        val paterno = estado.apellidoPaterno.trim().replace(Regex("\\s+"), " ")
+        val materno = estado.apellidoMaterno.trim().replace(Regex("\\s+"), " ")
 
-        val errorNombre = when {
-            nombre.isBlank() -> "El nombre es obligatorio"
-            !nombre.all { it.isLetter() || it == ' ' } -> "Solo letras y espacios"
-            nombre.split(" ").size < 2 -> "Escribe al menos nombre y apellido"
-            nombre.length > 60 -> "Máximo 60 caracteres"
-            else -> null
-        }
+        val errorNombres = errorTexto(nombres, "El nombre", true)
+        val errorPaterno = errorTexto(paterno, "El apellido paterno", true)
+        val errorMaterno = errorTexto(materno, "El apellido materno", false)
         val errorRut = when {
+            enEdicion != null -> null
             estado.rut.isBlank() -> "El RUT es obligatorio"
             !ValidadorRut.esValido(estado.rut) -> "RUT inválido, revisa el dígito verificador"
-            db.rutEnUso(ValidadorRut.limpiar(estado.rut)) -> "Ya existe un empleado con ese RUT"
+            estado.empleados.any { it.rut.equals(ValidadorRut.limpiar(estado.rut), ignoreCase = true) } ->
+                "Ya existe un empleado con ese RUT"
             else -> null
         }
         val errorCargo = when {
@@ -77,47 +129,99 @@ class EmpleadosViewModel(application: Application) : AndroidViewModel(applicatio
             estado.correoPersonal.isBlank() -> "El correo personal es obligatorio"
             !Patterns.EMAIL_ADDRESS.matcher(estado.correoPersonal).matches() -> "Ingresa un correo válido"
             GeneradorCorreo.esDeLaEmpresa(estado.correoPersonal) -> "Debe ser un correo personal, no de la empresa"
-            db.correoPersonalEnUso(estado.correoPersonal) -> "Ese correo ya está registrado"
+            estado.empleados.any { it.id != enEdicion?.id && it.correoPersonal.equals(estado.correoPersonal, ignoreCase = true) } ->
+                "Ese correo personal ya lo usa otro empleado"
             else -> null
         }
 
         _uiState.update {
             it.copy(
-                errorNombre = errorNombre, errorRut = errorRut, errorCargo = errorCargo,
-                errorRol = errorRol, errorCorreoPersonal = errorCorreo
+                errorNombres = errorNombres, errorApellidoPaterno = errorPaterno, errorApellidoMaterno = errorMaterno,
+                errorRut = errorRut, errorCargo = errorCargo, errorRol = errorRol, errorCorreoPersonal = errorCorreo
             )
         }
-        if (listOf(errorNombre, errorRut, errorCargo, errorRol, errorCorreo).any { it != null }) return
+        val errores = listOf(errorNombres, errorPaterno, errorMaterno, errorRut, errorCargo, errorRol, errorCorreo)
+        if (errores.any { it != null }) return
 
-        val correoEmpresa = GeneradorCorreo.generar(nombre) { db.correoEmpresaEnUso(it) }
-        val temporal = Seguridad.contrasenaTemporal()
-        val id = db.insertarEmpleado(
-            nombre = nombre,
-            rutLimpio = ValidadorRut.limpiar(estado.rut),
-            correoEmpresa = correoEmpresa,
-            correoPersonal = estado.correoPersonal,
-            cargo = estado.cargo,
-            rolId = estado.rolElegido!!,
-            contrasenaTemporal = temporal
+        val datos = EmpleadoRequest(
+            nombres = nombres,
+            apellidoPaterno = paterno,
+            apellidoMaterno = materno.ifBlank { null },
+            rut = ValidadorRut.limpiar(estado.rut),
+            cargo = estado.cargo.trim(),
+            codigoRol = Rol.codigo(estado.rolElegido!!),
+            correoPersonal = estado.correoPersonal
         )
-        if (id == -1L) {
-            _uiState.update { it.copy(mensaje = "No se pudo crear la cuenta") }
+
+        viewModelScope.launch {
+            try {
+                if (enEdicion != null) {
+                    repositorio.editar(enEdicion.id, datos)
+                    _uiState.update {
+                        EmpleadosUIState(empleados = it.empleados, mensaje = "Datos de $nombres actualizados")
+                    }
+                } else {
+                    val cuenta = repositorio.crear(datos)
+                    _uiState.update {
+                        EmpleadosUIState(
+                            empleados = it.empleados,
+                            cuentaCreada = CuentaCreada(
+                                titulo = "Cuenta creada",
+                                nombre = cuenta.usuario.nombreCompleto,
+                                correoEmpresa = cuenta.usuario.correo,
+                                contrasenaTemporal = cuenta.contrasenaTemporal,
+                                correoPersonal = estado.correoPersonal,
+                                correoEnviado = cuenta.correoEnviado
+                            )
+                        )
+                    }
+                }
+                cargarEmpleados()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(mensaje = e.message) }
+            }
+        }
+    }
+
+    fun onPedirClaveNueva(empleado: Usuario) {
+        if (empleado.correoPersonal.isNullOrBlank()) {
+            _uiState.update { it.copy(mensaje = "Primero agrega el correo personal de ${empleado.primerNombre()} con Editar") }
             return
         }
-        _uiState.update {
-            EmpleadosUIState(
-                empleados = db.listarEmpleados(),
-                cuentaCreada = CuentaCreada(nombre, correoEmpresa, temporal)
-            )
+        _uiState.update { it.copy(porClaveNueva = empleado) }
+    }
+
+    fun onCancelarClaveNueva() = _uiState.update { it.copy(porClaveNueva = null) }
+
+    fun onConfirmarClaveNueva() {
+        val empleado = _uiState.value.porClaveNueva ?: return
+        _uiState.update { it.copy(porClaveNueva = null) }
+        viewModelScope.launch {
+            try {
+                val cuenta = repositorio.contrasenaTemporal(empleado.id)
+                _uiState.update {
+                    it.copy(
+                        cuentaCreada = CuentaCreada(
+                            titulo = "Contraseña temporal nueva",
+                            nombre = empleado.nombre,
+                            correoEmpresa = empleado.correo,
+                            contrasenaTemporal = cuenta.contrasenaTemporal,
+                            correoPersonal = empleado.correoPersonal ?: "",
+                            correoEnviado = cuenta.correoEnviado
+                        )
+                    )
+                }
+                cargarEmpleados()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(mensaje = e.message) }
+            }
         }
     }
 
     fun onPedirDesactivar(empleado: Usuario, idAdmin: Long) {
-        val turnos = db.contarTurnosDesde(empleado.id, Fechas.hoy())
         val error = when {
             empleado.id == idAdmin -> "No puedes desactivar tu propia cuenta"
             empleado.rolId == Rol.ADMINISTRADOR -> "Las cuentas de administrador no se desactivan desde aquí"
-            turnos > 0 -> "${empleado.primerNombre()} tiene $turnos turno(s) desde hoy. Pide al supervisor que los reasigne primero"
             else -> null
         }
         if (error != null) {
@@ -131,13 +235,22 @@ class EmpleadosViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun onConfirmarDesactivar() {
         val empleado = _uiState.value.porDesactivar ?: return
-        val ok = db.desactivarEmpleado(empleado.id)
-        _uiState.update {
-            it.copy(
-                porDesactivar = null,
-                empleados = db.listarEmpleados(),
-                mensaje = if (ok) "${empleado.nombreCorto()} ya no puede ingresar a la app" else "No se pudo desactivar"
-            )
+        _uiState.update { it.copy(porDesactivar = null) }
+        viewModelScope.launch {
+            try {
+                val pendientes = turnoRepositorio.contarPendientes(empleado.id)
+                if (pendientes > 0) {
+                    _uiState.update {
+                        it.copy(mensaje = "${empleado.primerNombre()} tiene $pendientes turno(s) desde hoy. Pide al supervisor que los reasigne primero")
+                    }
+                    return@launch
+                }
+                repositorio.desactivar(empleado.id)
+                _uiState.update { it.copy(mensaje = "${empleado.nombreCorto()} ya no puede ingresar a la app") }
+                cargarEmpleados()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(mensaje = e.message) }
+            }
         }
     }
 }

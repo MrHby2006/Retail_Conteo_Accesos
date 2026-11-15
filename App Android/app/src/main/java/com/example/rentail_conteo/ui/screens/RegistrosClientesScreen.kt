@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -61,7 +62,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rentail_conteo.R
 import com.example.rentail_conteo.model.Franjas
-import com.example.rentail_conteo.model.Opciones
 import com.example.rentail_conteo.model.PersonaIngreso
 import com.example.rentail_conteo.model.RegistrosClientesUIState
 import com.example.rentail_conteo.model.Usuario
@@ -70,6 +70,7 @@ import com.example.rentail_conteo.ui.components.BarraSuperior
 import com.example.rentail_conteo.ui.components.Boton
 import com.example.rentail_conteo.ui.components.CampoCorreo
 import com.example.rentail_conteo.ui.components.CampoNombre
+import com.example.rentail_conteo.ui.components.CampoReferencia
 import com.example.rentail_conteo.ui.components.SeleccionChips
 import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.util.Fechas
@@ -175,28 +176,28 @@ private fun BuscarComprador(uiState: RegistrosClientesUIState, viewModel: Regist
         item {
             SeleccionChips(
                 titulo = "Rango de edad",
-                opciones = Opciones.rangosEtarios,
+                opciones = uiState.rangos,
                 seleccionada = uiState.filtroRango,
                 onSeleccionar = viewModel::onFiltroRango,
-                textoDe = { it }
+                textoDe = { it.nombre }
             )
         }
         item {
             SeleccionChips(
                 titulo = "Color de la ropa (arriba)",
-                opciones = Opciones.coloresRopa,
+                opciones = uiState.colores,
                 seleccionada = uiState.filtroColor,
                 onSeleccionar = viewModel::onFiltroColor,
-                textoDe = { it }
+                textoDe = { it.nombre }
             )
         }
         item {
             SeleccionChips(
                 titulo = "Color de la ropa (abajo)",
-                opciones = Opciones.coloresRopa,
+                opciones = uiState.colores,
                 seleccionada = uiState.filtroColorAbajo,
                 onSeleccionar = viewModel::onFiltroColorAbajo,
-                textoDe = { it }
+                textoDe = { it.nombre }
             )
         }
         item {
@@ -225,6 +226,9 @@ private fun BuscarComprador(uiState: RegistrosClientesUIState, viewModel: Regist
                 onSeleccionar = viewModel::onFiltroFranja,
                 textoDe = { it }
             )
+        }
+        if (uiState.cargando) {
+            item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth()) }
         }
         item {
             Text(
@@ -264,7 +268,7 @@ private fun TarjetaPersona(persona: PersonaIngreso, onClick: () -> Unit, modifie
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${persona.rangoEtario} · Arriba: ${persona.colorRopa}, Abajo: ${persona.colorRopaAbajo}",
+                    text = "${persona.rangoEtario} · Arriba: ${persona.colorRopa}, Abajo: ${persona.colorRopaAbajo} · ${persona.compania}",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 if (persona.detalle.isNotBlank()) {
@@ -303,6 +307,14 @@ private fun ConfirmarCompra(
         Text("Confirmar compra", style = MaterialTheme.typography.titleLarge)
         TarjetaPersona(persona = persona, onClick = {})
         TextButton(onClick = viewModel::onCancelar) { Text("Cambiar persona") }
+
+        CampoReferencia(
+            valor = uiState.numeroBoleta,
+            onValorCambia = viewModel::onBoletaCambia,
+            etiqueta = "N° de boleta",
+            icono = R.drawable.ic_camara,
+            error = uiState.errorBoleta
+        )
 
         CampoNombre(
             valor = uiState.nombreCliente,
@@ -350,6 +362,10 @@ private fun ConfirmarCompra(
         }
 
         Spacer(Modifier.height(Dimens.espacioChico))
-        Boton(texto = "Guardar compra", onClick = onGuardar, modifier = Modifier.fillMaxWidth())
+        Boton(
+            texto = if (uiState.guardando) "Guardando..." else "Guardar compra",
+            onClick = onGuardar,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

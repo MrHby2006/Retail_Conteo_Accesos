@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -45,7 +46,7 @@ import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.ui.theme.GrisDeshabilitado
 import com.example.rentail_conteo.viewmodel.IndicadoresViewModel
 
-private const val PERIODO_TODO = "Todo el registro"
+private const val PERIODO_TODO = "Este mes"
 private const val PERIODO_HOY = "Hoy"
 
 @Composable
@@ -94,8 +95,17 @@ fun IndicadoresScreen(
                 textoDe = { it }
             )
 
+            if (uiState.cargando) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            uiState.error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                return@Column
+            }
             if (uiState.ingresos == 0) {
-                Text("No hay ingresos registrados en este período.", style = MaterialTheme.typography.bodyLarge)
+                if (!uiState.cargando) {
+                    Text("No hay ingresos registrados en este período.", style = MaterialTheme.typography.bodyLarge)
+                }
                 return@Column
             }
 
@@ -106,6 +116,15 @@ fun IndicadoresScreen(
             }
 
             GraficoConversion(conversion = uiState.conversion, progreso = progreso.value)
+
+            uiState.metaMes?.let { meta ->
+                Text(
+                    if (uiState.cumpleMeta == true) "Meta del mes: $meta % · se está cumpliendo"
+                    else "Meta del mes: $meta % · todavía no se cumple",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (uiState.cumpleMeta == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                )
+            }
 
             if (uiState.porAcceso.isNotEmpty()) {
                 Text("Por acceso", style = MaterialTheme.typography.titleMedium)
@@ -143,7 +162,9 @@ fun IndicadoresScreen(
                     Text("Perfil del público", style = MaterialTheme.typography.titleMedium)
                     Text("Compra más: ${uiState.perfilQueMasCompra ?: "sin compras aún"}")
                     Text("Más gente que NO compra: ${uiState.perfilQueNoCompra ?: "todos compraron"}")
-                    Text("Compran solos: ${uiState.conversionSolos} % · acompañados: ${uiState.conversionAcompanados} %")
+                    uiState.porCompania.forEach { fila ->
+                        Text("${fila.grupo}: compra el ${fila.conversion} % (${fila.compradores} de ${fila.ingresos})")
+                    }
                 }
             }
         }

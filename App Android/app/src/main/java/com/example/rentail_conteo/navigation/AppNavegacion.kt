@@ -1,6 +1,11 @@
 package com.example.rentail_conteo.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -15,14 +20,13 @@ import com.example.rentail_conteo.model.Rol
 import com.example.rentail_conteo.model.Usuario
 import com.example.rentail_conteo.ui.screens.AdminScreen
 import com.example.rentail_conteo.ui.screens.CambiarContrasenaScreen
-import com.example.rentail_conteo.ui.screens.CrearTrabajadorScreen
 import com.example.rentail_conteo.ui.screens.DivisionScreen
 import com.example.rentail_conteo.ui.screens.EmpleadosScreen
 import com.example.rentail_conteo.ui.screens.HorarioScreen
 import com.example.rentail_conteo.ui.screens.IndicadoresScreen
 import com.example.rentail_conteo.ui.screens.InicioTrabajadorScreen
-import com.example.rentail_conteo.ui.screens.ListaTrabajadoresScreen
 import com.example.rentail_conteo.ui.screens.LoginScreen
+import com.example.rentail_conteo.ui.screens.PerfilScreen
 import com.example.rentail_conteo.ui.screens.PortonScreen
 import com.example.rentail_conteo.ui.screens.RecuperarContrasenaScreen
 import com.example.rentail_conteo.ui.screens.RegistrosClientesScreen
@@ -35,6 +39,14 @@ fun AppNavegacion() {
 
     val sesionViewModel: SesionViewModel = viewModel()
     val usuario by sesionViewModel.usuarioActual.collectAsStateWithLifecycle()
+    val cargandoSesion by sesionViewModel.cargando.collectAsStateWithLifecycle()
+
+    if (cargandoSesion) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     val inicio = remember { rutaInicial(sesionViewModel.usuarioActual.value) }
 
@@ -53,7 +65,8 @@ fun AppNavegacion() {
 
         composable(Ruta.RecuperarContrasena.ruta) {
             RecuperarContrasenaScreen(
-                onVolver = { navController.popBackStack() }
+                onVolver = { navController.popBackStack() },
+                onListo = { navController.popBackStack() }
             )
         }
 
@@ -76,6 +89,17 @@ fun AppNavegacion() {
                 onIndicadores = { navController.navigate(Ruta.Division.ruta) },
                 onEmpleados = { navController.navigate(Ruta.Empleados.ruta) },
                 onHorario = { navController.navigate(Ruta.Horario.ruta) },
+                onPerfil = { navController.navigate(Ruta.Perfil.ruta) },
+                onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
+            )
+        }
+
+        composable(Ruta.Perfil.ruta) {
+            val actual = usuario ?: return@composable
+            PerfilScreen(
+                usuario = actual,
+                onUsuarioActualizado = { sesionViewModel.iniciarSesion(it) },
+                onVolver = { navController.popBackStack() },
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
             )
         }
@@ -103,21 +127,6 @@ fun AppNavegacion() {
                 viewModel = viewModel(),
                 onConsultarClicked = { idAcceso -> navController.navigate(Ruta.Indicadores.conAcceso(idAcceso)) },
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) },
-                onVerTrabajadoresClicked = { navController.navigate(Ruta.ListaTrabajadores.ruta) },
-                onCrearTrabajadorClicked = { navController.navigate(Ruta.CrearTrabajador.ruta) },
-                onVolver = { navController.popBackStack() }
-            )
-        }
-
-        composable(Ruta.ListaTrabajadores.ruta) {
-            ListaTrabajadoresScreen(
-                onVolver = { navController.popBackStack() },
-                onModificarTrabajador = { }
-            )
-        }
-
-        composable(Ruta.CrearTrabajador.ruta) {
-            CrearTrabajadorScreen(
                 onVolver = { navController.popBackStack() }
             )
         }
@@ -138,6 +147,7 @@ fun AppNavegacion() {
             TurnosScreen(
                 supervisor = actual,
                 onVerHorario = { navController.navigate(Ruta.Horario.ruta) },
+                onPerfil = { navController.navigate(Ruta.Perfil.ruta) },
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
             )
         }
@@ -149,6 +159,7 @@ fun AppNavegacion() {
                 onIrAPuerta = { navController.navigate(Ruta.Porton.ruta) },
                 onIrACaja = { navController.navigate(Ruta.RegistrosClientes.ruta) },
                 onVerHorario = { navController.navigate(Ruta.Horario.ruta) },
+                onPerfil = { navController.navigate(Ruta.Perfil.ruta) },
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
             )
         }

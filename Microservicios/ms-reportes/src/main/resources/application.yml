@@ -1,6 +1,14 @@
 spring:
   application:
     name: ms-reportes
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/rinconsur_reportes?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=America/Santiago&allowPublicKeyRetrieval=true
+    username: ${DB_USUARIO:root}
+    password: ${DB_CLAVE:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
 
 server:
   port: 8086
@@ -14,4 +22,7 @@ springdoc:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+    instance-id: ms-reportes:${server.port}

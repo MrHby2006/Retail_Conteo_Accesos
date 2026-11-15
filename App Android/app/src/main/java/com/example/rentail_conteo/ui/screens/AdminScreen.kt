@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.example.rentail_conteo.R
 import com.example.rentail_conteo.model.Usuario
 import com.example.rentail_conteo.ui.components.BarraSuperior
+import com.example.rentail_conteo.ui.components.SaludoCumpleanos
 import com.example.rentail_conteo.ui.theme.Dimens
 
 @Composable
@@ -29,10 +30,11 @@ fun AdminScreen(
     onIndicadores: () -> Unit,
     onEmpleados: () -> Unit,
     onHorario: () -> Unit,
+    onPerfil: () -> Unit,
     onCerrarSesion: () -> Unit
 ) {
     Scaffold(
-        topBar = { BarraSuperior(titulo = "Administración", onCerrarSesion = onCerrarSesion) }
+        topBar = { BarraSuperior(titulo = "Administración", onCerrarSesion = onCerrarSesion, onPerfil = onPerfil) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -42,6 +44,7 @@ fun AdminScreen(
             verticalArrangement = Arrangement.spacedBy(Dimens.espacioMedio)
         ) {
             Text("Hola, ${admin.primerNombre()}", style = MaterialTheme.typography.headlineSmall)
+            if (admin.esCumpleanosHoy()) SaludoCumpleanos(admin.primerNombre())
             Text("¿Qué quieres revisar?", style = MaterialTheme.typography.bodyMedium)
 
             OpcionAdmin(
@@ -52,7 +55,7 @@ fun AdminScreen(
             )
             OpcionAdmin(
                 titulo = "Empleados",
-                detalle = "Crear cuentas nuevas y desactivar empleados",
+                detalle = "Crear, editar y desactivar cuentas. Los datos llegan por correo",
                 icono = R.drawable.ic_correo,
                 onClick = onEmpleados
             )

@@ -5,35 +5,31 @@ spring:
     gateway:
       server:
         webflux:
-          discovery:
-            locator:
-              enabled: true
-              lower-case-service-id: true
           routes:
             - id: ms-usuarios
               uri: lb://ms-usuarios
               predicates:
-                - Path=/api/v1/auth/**,/api/v1/usuarios/**,/api/v1/roles/**
+                - Path=/api/v1/auth/**,/api/v1/usuarios,/api/v1/usuarios/**,/api/v1/roles,/api/v1/roles/**
 
             - id: ms-turnos
               uri: lb://ms-turnos
               predicates:
-                - Path=/api/v1/turnos/**,/api/v1/solicitudes/**
+                - Path=/api/v1/turnos,/api/v1/turnos/**,/api/v1/solicitudes/**
 
             - id: ms-notificaciones
               uri: lb://ms-notificaciones
               predicates:
-                - Path=/api/v1/notificaciones/**
+                - Path=/api/v1/notificaciones,/api/v1/notificaciones/**
 
             - id: ms-accesos
               uri: lb://ms-accesos
               predicates:
-                - Path=/api/v1/accesos/**,/api/v1/ingresos/**
+                - Path=/api/v1/accesos,/api/v1/accesos/**,/api/v1/ingresos,/api/v1/ingresos/**
 
             - id: ms-ventas
               uri: lb://ms-ventas
               predicates:
-                - Path=/api/v1/compras/**
+                - Path=/api/v1/compras,/api/v1/compras/**
 
             - id: ms-reportes
               uri: lb://ms-reportes
@@ -45,5 +41,10 @@ server:
 
 eureka:
   client:
+    register-with-eureka: true
+    fetch-registry: true
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+    instance-id: api-gateway:${server.port}

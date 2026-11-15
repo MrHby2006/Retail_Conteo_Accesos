@@ -27,12 +27,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rentail_conteo.R
-import com.example.rentail_conteo.model.Opciones
 import com.example.rentail_conteo.model.Usuario
 import com.example.rentail_conteo.ui.components.BarraSuperior
 import com.example.rentail_conteo.ui.components.Boton
 import com.example.rentail_conteo.ui.components.CampoReferencia
-import com.example.rentail_conteo.ui.components.InterruptorConTexto
 import com.example.rentail_conteo.ui.components.SeleccionChips
 import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.viewmodel.PortonViewModel
@@ -47,7 +45,7 @@ fun PortonScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(observador.id) { viewModel.cargarTurno(observador.id) }
+    LaunchedEffect(observador.id) { viewModel.cargar(observador.id) }
 
     LaunchedEffect(uiState.mensaje) {
         uiState.mensaje?.let {
@@ -107,41 +105,44 @@ fun PortonScreen(
 
             SeleccionChips(
                 titulo = "Rango de edad (a la vista)",
-                opciones = Opciones.rangosEtarios,
+                opciones = uiState.rangos,
                 seleccionada = uiState.rangoEtario,
                 onSeleccionar = viewModel::onRangoElegido,
-                textoDe = { it },
+                textoDe = { it.nombre },
                 error = uiState.errorRango
             )
             SeleccionChips(
                 titulo = "Altura",
-                opciones = Opciones.alturas,
+                opciones = uiState.alturas,
                 seleccionada = uiState.altura,
                 onSeleccionar = viewModel::onAlturaElegida,
-                textoDe = { it },
+                textoDe = { it.nombre },
                 error = uiState.errorAltura
             )
             SeleccionChips(
                 titulo = "Color de la ropa (parte de arriba)",
-                opciones = Opciones.coloresRopa,
+                opciones = uiState.colores,
                 seleccionada = uiState.colorRopa,
                 onSeleccionar = viewModel::onColorElegido,
-                textoDe = { it },
+                textoDe = { it.nombre },
                 error = uiState.errorColor
             )
             SeleccionChips(
                 titulo = "Color de la ropa (parte de abajo)",
-                opciones = Opciones.coloresRopa,
+                opciones = uiState.colores,
                 seleccionada = uiState.colorRopaAbajo,
                 onSeleccionar = viewModel::onColorAbajoElegido,
-                textoDe = { it },
+                textoDe = { it.nombre },
                 error = uiState.errorColorAbajo
             )
 
-            InterruptorConTexto(
-                texto = "¿Viene acompañado?",
-                activado = uiState.acompanado,
-                onCambio = viewModel::onAcompanadoCambia
+            SeleccionChips(
+                titulo = "¿Viene sola o acompañada?",
+                opciones = uiState.companias,
+                seleccionada = uiState.compania,
+                onSeleccionar = viewModel::onCompaniaElegida,
+                textoDe = { it.nombre },
+                error = uiState.errorCompania
             )
 
             CampoReferencia(
@@ -153,7 +154,7 @@ fun PortonScreen(
             )
 
             Boton(
-                texto = "Registrar ingreso",
+                texto = if (uiState.guardando) "Guardando..." else "Registrar ingreso",
                 onClick = { viewModel.onRegistrar(observador.id) },
                 modifier = Modifier.fillMaxWidth()
             )

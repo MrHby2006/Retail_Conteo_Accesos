@@ -30,7 +30,7 @@ data class SolicitudCambio(
         }
     }
 
-    private fun legible(puesto: String) = if (puesto == Turno.PUESTO_CAJA) "Caja" else "Puerta $puesto"
+    private fun legible(puesto: String) = if (puesto == Turno.PUESTO_CAJA) "Caja" else puesto
 
     private fun primerNombre(nombre: String) = nombre.trim().substringBefore(" ")
 
