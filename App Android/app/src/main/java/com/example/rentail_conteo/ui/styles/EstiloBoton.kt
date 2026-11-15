@@ -11,9 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.rentail_conteo.ui.theme.Blanco
 import com.example.rentail_conteo.ui.theme.Dimens
-import com.example.rentail_conteo.ui.theme.Primario
 
 object EstiloBoton {
     val forma: androidx.compose.ui.graphics.Shape = RoundedCornerShape(Dimens.radioBoton)
@@ -22,8 +20,8 @@ object EstiloBoton {
 
     @Composable
     fun coloresPrincipales(): ButtonColors = ButtonDefaults.buttonColors(
-        containerColor = Primario,
-        contentColor = Blanco
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary
     )
 
     @Composable

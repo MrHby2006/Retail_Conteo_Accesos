@@ -1,6 +1,5 @@
 package com.example.rentail_conteo.ui.screens
 
-import android.R
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.*
@@ -23,8 +22,6 @@ fun DivisionScreen(
     modifier: Modifier = Modifier,
     onConsultarClicked: (idAcceso: Int) -> Unit = {},
     onCerrarSesion: () -> Unit = {},
-    onVerTrabajadoresClicked: () -> Unit = {},
-    onCrearTrabajadorClicked: () -> Unit = {},
     onVolver: (() -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -41,26 +38,9 @@ fun DivisionScreen(
                 .padding(Dimens.espacioPantalla),
             verticalArrangement = Arrangement.spacedBy(Dimens.espacioGrande)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.espacioChico)
-            ) {
-                OutlinedButton(
-                    onClick = onVerTrabajadoresClicked,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Ver lista de trabajadores", style = MaterialTheme.typography.bodyMedium)
-                }
-
-                OutlinedButton(
-                    onClick = onCrearTrabajadorClicked,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Crear usuario", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
             Text(
-                text = "Seleccione el acceso a consultar:",
+                text = "Seleccione el acceso a consultar. Con el interruptor activa o desactiva una puerta: " +
+                        "una puerta desactivada no se puede asignar en los turnos.",
                 style = MaterialTheme.typography.bodyMedium
             )
 
@@ -85,7 +65,7 @@ fun DivisionScreen(
                                 )
                             },
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .weight(1f)
                                 .height(56.dp)
                         )
 

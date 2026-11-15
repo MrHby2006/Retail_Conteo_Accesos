@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -43,6 +44,7 @@ import com.example.rentail_conteo.model.Turno
 import com.example.rentail_conteo.model.Usuario
 import com.example.rentail_conteo.permisos.Permisos
 import com.example.rentail_conteo.ui.components.BarraSuperior
+import com.example.rentail_conteo.ui.components.SaludoCumpleanos
 import com.example.rentail_conteo.ui.components.Boton
 import com.example.rentail_conteo.ui.theme.Dimens
 import com.example.rentail_conteo.util.Fechas
@@ -54,6 +56,7 @@ fun InicioTrabajadorScreen(
     onIrAPuerta: () -> Unit,
     onIrACaja: () -> Unit,
     onVerHorario: () -> Unit,
+    onPerfil: () -> Unit,
     onCerrarSesion: () -> Unit,
     viewModel: InicioTrabajadorViewModel = viewModel()
 ) {
@@ -85,7 +88,9 @@ fun InicioTrabajadorScreen(
     }
 
     Scaffold(
-        topBar = { BarraSuperior(titulo = "Hola, ${trabajador.primerNombre()}", onCerrarSesion = onCerrarSesion) },
+        topBar = {
+            BarraSuperior(titulo = "Hola, ${trabajador.primerNombre()}", onCerrarSesion = onCerrarSesion, onPerfil = onPerfil)
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
@@ -96,6 +101,12 @@ fun InicioTrabajadorScreen(
                 .padding(Dimens.espacioPantalla),
             verticalArrangement = Arrangement.spacedBy(Dimens.espacioMedio)
         ) {
+            if (trabajador.esCumpleanosHoy()) SaludoCumpleanos(trabajador.primerNombre())
+
+            if (uiState.cargando) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+
             val turno = uiState.turnoHoy
             if (turno != null) {
                 TarjetaMiPuesto(
@@ -106,7 +117,7 @@ fun InicioTrabajadorScreen(
                     Icon(painterResource(R.drawable.ic_campana), contentDescription = null)
                     Text("  Probar aviso de fin de turno")
                 }
-            } else {
+            } else if (!uiState.cargando) {
                 Text("Hoy no tienes más turnos asignados", style = MaterialTheme.typography.titleMedium)
                 Text(
                     uiState.proximoTurno?.let {

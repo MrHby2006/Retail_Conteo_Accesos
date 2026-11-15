@@ -66,7 +66,7 @@ fun HorarioScreen(
             if (uiState.turnos.isEmpty()) {
                 item {
                     Text(
-                        if (uiState.esProximaSemana) "El supervisor todavía no publica el horario de la próxima semana."
+                        uiState.error ?: if (uiState.esProximaSemana) "El supervisor todavía no publica el horario de la próxima semana."
                         else "No hay turnos publicados esta semana.",
                         style = MaterialTheme.typography.bodyMedium
                     )

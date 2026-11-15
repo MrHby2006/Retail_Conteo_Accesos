@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -58,14 +59,19 @@ fun EmpleadosScreen(
     }
 
     uiState.cuentaCreada?.let { cuenta ->
+        val estadoCorreo = when (cuenta.correoEnviado) {
+            null -> "Enviando los datos a ${cuenta.correoPersonal}..."
+            true -> "Se enviaron los datos a ${cuenta.correoPersonal}."
+            false -> "No se pudo enviar el correo a ${cuenta.correoPersonal}. Entrégale estos datos en persona."
+        }
         AlertDialog(
             onDismissRequest = viewModel::onCerrarCuentaCreada,
-            title = { Text("Cuenta creada") },
+            title = { Text(cuenta.titulo) },
             text = {
                 Text(
                     "${cuenta.nombre}\n\nCorreo de empresa: ${cuenta.correoEmpresa}\n" +
                             "Contraseña temporal: ${cuenta.contrasenaTemporal}\n\n" +
-                            "Al entrar por primera vez deberá cambiar la contraseña."
+                            "Ingresa con su RUT y al entrar deberá cambiar la contraseña.\n\n$estadoCorreo"
                 )
             },
             confirmButton = { TextButton(onClick = viewModel::onCerrarCuentaCreada) { Text("Entendido") } }
@@ -79,6 +85,21 @@ fun EmpleadosScreen(
             text = { Text("${empleado.nombre} ya no podrá ingresar a la app. Sus registros anteriores se mantienen.") },
             confirmButton = { TextButton(onClick = viewModel::onConfirmarDesactivar) { Text("Desactivar") } },
             dismissButton = { TextButton(onClick = viewModel::onCancelarDesactivar) { Text("Cancelar") } }
+        )
+    }
+
+    uiState.porClaveNueva?.let { empleado ->
+        AlertDialog(
+            onDismissRequest = viewModel::onCancelarClaveNueva,
+            title = { Text("Contraseña temporal nueva") },
+            text = {
+                Text(
+                    "Se creará una contraseña temporal para ${empleado.nombre} y se enviará a " +
+                            "${empleado.correoPersonal}. Su contraseña actual dejará de funcionar."
+                )
+            },
+            confirmButton = { TextButton(onClick = viewModel::onConfirmarClaveNueva) { Text("Generar") } },
+            dismissButton = { TextButton(onClick = viewModel::onCancelarClaveNueva) { Text("Cancelar") } }
         )
     }
 
@@ -106,6 +127,9 @@ fun EmpleadosScreen(
                     )
                 }
             }
+            if (uiState.cargando) {
+                item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth()) }
+            }
             item {
                 Text(
                     "${uiState.empleados.size} empleado(s) activos",
@@ -114,7 +138,12 @@ fun EmpleadosScreen(
                 )
             }
             items(uiState.empleados, key = { it.id }) { empleado ->
-                TarjetaEmpleado(empleado = empleado, onDesactivar = { viewModel.onPedirDesactivar(empleado, admin.id) })
+                TarjetaEmpleado(
+                    empleado = empleado,
+                    onEditar = { viewModel.onEditar(empleado) },
+                    onClaveNueva = { viewModel.onPedirClaveNueva(empleado) },
+                    onDesactivar = { viewModel.onPedirDesactivar(empleado, admin.id) }
+                )
             }
         }
     }
@@ -126,23 +155,46 @@ private fun FormularioEmpleado(uiState: EmpleadosUIState, viewModel: EmpleadosVi
         modifier = Modifier.padding(top = Dimens.espacioMedio),
         verticalArrangement = Arrangement.spacedBy(Dimens.espacioChico)
     ) {
-        Text("Nuevo empleado", style = MaterialTheme.typography.titleLarge)
+        val editando = uiState.enEdicion != null
+        Text(if (editando) "Editar empleado" else "Nuevo empleado", style = MaterialTheme.typography.titleLarge)
 
         OutlinedTextField(
-            value = uiState.nombre,
-            onValueChange = viewModel::onNombreCambia,
-            label = { Text("Nombre completo") },
+            value = uiState.nombres,
+            onValueChange = viewModel::onNombresCambia,
+            label = { Text("Nombres") },
             leadingIcon = { Icon(painterResource(R.drawable.ic_persona), contentDescription = null) },
-            isError = uiState.errorNombre != null,
+            isError = uiState.errorNombres != null,
+            supportingText = { uiState.errorNombres?.let { Text(it) } },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = uiState.apellidoPaterno,
+            onValueChange = viewModel::onApellidoPaternoCambia,
+            label = { Text("Apellido paterno") },
+            leadingIcon = { Icon(painterResource(R.drawable.ic_persona), contentDescription = null) },
+            isError = uiState.errorApellidoPaterno != null,
             supportingText = {
                 Text(
                     when {
-                        uiState.errorNombre != null -> uiState.errorNombre
-                        uiState.correoEmpresaSugerido.isNotBlank() -> "Correo de empresa: ${uiState.correoEmpresaSugerido}"
-                        else -> "Nombre y apellido"
+                        uiState.errorApellidoPaterno != null -> uiState.errorApellidoPaterno
+                        editando -> "Correo de empresa: ${uiState.enEdicion?.correo}"
+                        uiState.correoEmpresaSugerido.isNotBlank() ->
+                            "Correo de empresa: ${uiState.correoEmpresaSugerido} (si ya existe se le agrega un número)"
+                        else -> ""
                     }
                 )
             },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = uiState.apellidoMaterno,
+            onValueChange = viewModel::onApellidoMaternoCambia,
+            label = { Text("Apellido materno (opcional)") },
+            leadingIcon = { Icon(painterResource(R.drawable.ic_persona), contentDescription = null) },
+            isError = uiState.errorApellidoMaterno != null,
+            supportingText = { uiState.errorApellidoMaterno?.let { Text(it) } },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -152,7 +204,8 @@ private fun FormularioEmpleado(uiState: EmpleadosUIState, viewModel: EmpleadosVi
             label = { Text("RUT (ej: 15234871-1)") },
             leadingIcon = { Icon(painterResource(R.drawable.ic_persona), contentDescription = null) },
             isError = uiState.errorRut != null,
-            supportingText = { uiState.errorRut?.let { Text(it) } },
+            supportingText = { Text(uiState.errorRut ?: if (editando) "El RUT no se puede cambiar" else "Con este RUT ingresará a la app") },
+            enabled = !editando,
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -177,40 +230,60 @@ private fun FormularioEmpleado(uiState: EmpleadosUIState, viewModel: EmpleadosVi
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             modifier = Modifier.fillMaxWidth()
         )
-        SeleccionChips(
-            titulo = "Rol",
-            opciones = Rol.asignables,
-            seleccionada = uiState.rolElegido,
-            onSeleccionar = viewModel::onRolElegido,
-            textoDe = { Rol.nombre(it) },
-            error = uiState.errorRol
+        if (uiState.enEdicion?.rolId != Rol.ADMINISTRADOR) {
+            SeleccionChips(
+                titulo = "Rol",
+                opciones = Rol.asignables,
+                seleccionada = uiState.rolElegido,
+                onSeleccionar = viewModel::onRolElegido,
+                textoDe = { Rol.nombre(it) },
+                error = uiState.errorRol
+            )
+        }
+        Boton(
+            texto = if (editando) "Guardar cambios" else "Crear cuenta y enviar correo",
+            onClick = viewModel::onGuardar,
+            modifier = Modifier.fillMaxWidth()
         )
-        Boton(texto = "Crear cuenta", onClick = viewModel::onGuardar, modifier = Modifier.fillMaxWidth())
         TextButton(onClick = viewModel::onCancelarFormulario, modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
     }
 }
 
 @Composable
-private fun TarjetaEmpleado(empleado: Usuario, onDesactivar: () -> Unit) {
+private fun TarjetaEmpleado(
+    empleado: Usuario,
+    onEditar: () -> Unit,
+    onClaveNueva: () -> Unit,
+    onDesactivar: () -> Unit
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(Dimens.espacioMedio),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(empleado.nombre, fontWeight = FontWeight.Bold)
-                Text("${Rol.nombre(empleado.rolId)} · ${empleado.cargo}", style = MaterialTheme.typography.bodySmall)
-                Text(empleado.correo, style = MaterialTheme.typography.bodySmall)
-                if (empleado.debeCambiarContrasena) {
-                    Text(
-                        "Aún no cambia su contraseña temporal",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
+        Column(modifier = Modifier.padding(Dimens.espacioMedio)) {
+            Text(empleado.nombre, fontWeight = FontWeight.Bold)
+            Text("${Rol.nombre(empleado.rolId)} · ${empleado.cargo}", style = MaterialTheme.typography.bodySmall)
+            Text(empleado.correo, style = MaterialTheme.typography.bodySmall)
+            Text(
+                empleado.correoPersonal?.let { "Personal: $it" } ?: "Sin correo personal",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (empleado.correoPersonal == null) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.onSurface
+            )
+            if (empleado.debeCambiarContrasena) {
+                Text(
+                    "Aún no cambia su contraseña temporal",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
             }
-            if (empleado.rolId != Rol.ADMINISTRADOR) {
-                TextButton(onClick = onDesactivar) { Text("Desactivar") }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onEditar) { Text("Editar") }
+                TextButton(onClick = onClaveNueva) { Text("Nueva clave") }
+                if (empleado.rolId != Rol.ADMINISTRADOR) {
+                    TextButton(onClick = onDesactivar) { Text("Desactivar") }
+                }
             }
         }
     }
