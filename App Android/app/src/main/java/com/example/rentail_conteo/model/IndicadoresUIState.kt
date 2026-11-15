@@ -13,15 +13,18 @@ data class FilaIndicador(
 data class IndicadoresUIState(
     val acceso: AccesoItem? = null,
     val soloHoy: Boolean = false,
+    val cargando: Boolean = false,
+    val error: String? = null,
     val ingresos: Int = 0,
     val compradores: Int = 0,
     val porRango: List<FilaIndicador> = emptyList(),
     val porAcceso: List<FilaIndicador> = emptyList(),
+    val porCompania: List<FilaIndicador> = emptyList(),
     val accesoMasDePaso: FilaIndicador? = null,
     val perfilQueMasCompra: String? = null,
     val perfilQueNoCompra: String? = null,
-    val conversionSolos: Int = 0,
-    val conversionAcompanados: Int = 0
+    val metaMes: Double? = null,
+    val cumpleMeta: Boolean? = null
 ) {
     val noCompradores: Int get() = ingresos - compradores
     val conversion: Int get() = if (ingresos == 0) 0 else compradores * 100 / ingresos
