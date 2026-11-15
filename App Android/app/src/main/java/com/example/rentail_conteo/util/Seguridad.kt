@@ -30,6 +30,8 @@ object Seguridad {
         return caracteres.joinToString("")
     }
 
+    fun codigoRecuperacion(): String = (1..6).map { aleatorio.nextInt(10) }.joinToString("")
+
     fun errorContrasenaNueva(contrasena: String): String? = when {
         contrasena.isBlank() -> "La contraseña es obligatoria"
         contrasena.contains(" ") -> "No puede tener espacios"

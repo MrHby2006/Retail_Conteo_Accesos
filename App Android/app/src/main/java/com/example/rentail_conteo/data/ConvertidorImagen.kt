@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
+import java.io.ByteArrayOutputStream
 import java.io.File
 
 object ConvertidorImagen {
@@ -33,6 +34,15 @@ object ConvertidorImagen {
         archivo
     } catch (e: Exception) {
         null
+    }
+
+    fun leer(ruta: String?): Bitmap? =
+        if (ruta.isNullOrBlank() || !File(ruta).exists()) null else BitmapFactory.decodeFile(ruta)
+
+    fun aBytes(bitmap: Bitmap): ByteArray {
+        val salida = ByteArrayOutputStream()
+        achicar(bitmap).compress(Bitmap.CompressFormat.JPEG, CALIDAD_JPEG, salida)
+        return salida.toByteArray()
     }
 
     private fun achicar(bitmap: Bitmap): Bitmap {

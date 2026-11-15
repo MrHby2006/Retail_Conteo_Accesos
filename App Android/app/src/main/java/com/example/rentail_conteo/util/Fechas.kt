@@ -39,6 +39,19 @@ object Fechas {
 
     fun diasDeLaSemana(lunes: String): List<String> = (0..6).map { sumarDias(lunes, it) }
 
+    fun enMinutos(minutos: Int): String {
+        val calendario = Calendar.getInstance().apply { add(Calendar.MINUTE, minutos) }
+        return SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(calendario.time)
+    }
+
+    fun edad(fechaNacimiento: String): Int {
+        val hoy = hoy()
+        val anios = hoy.take(4).toInt() - fechaNacimiento.take(4).toInt()
+        return if (hoy.drop(5) < fechaNacimiento.drop(5)) anios - 1 else anios
+    }
+
+    fun legible(fecha: String): String = "${fecha.substring(8, 10)}/${fecha.substring(5, 7)}/${fecha.take(4)}"
+
     fun hora(fechaHora: String): String = fechaHora.drop(11).take(5)
 
     fun aMillisLocal(fechaHora: String): Long =
