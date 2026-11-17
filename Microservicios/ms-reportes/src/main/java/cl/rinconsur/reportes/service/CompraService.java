@@ -1,4 +1,4 @@
-package cl.rinconsur.ventas.service;
+package cl.rinconsur.reportes.service;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,12 +15,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import cl.rinconsur.ventas.client.AccesoClient;
-import cl.rinconsur.ventas.client.UsuarioClient;
-import cl.rinconsur.ventas.dto.CompraDTO;
-import cl.rinconsur.ventas.dto.CompraNuevaDTO;
-import cl.rinconsur.ventas.model.Compra;
-import cl.rinconsur.ventas.repository.CompraRepository;
+import cl.rinconsur.reportes.client.AccesoClient;
+import cl.rinconsur.reportes.client.UsuarioClient;
+import cl.rinconsur.reportes.dto.CompraDTO;
+import cl.rinconsur.reportes.dto.CompraNuevaDTO;
+import cl.rinconsur.reportes.model.Compra;
+import cl.rinconsur.reportes.repository.CompraRepository;
 
 @Service
 public class CompraService {

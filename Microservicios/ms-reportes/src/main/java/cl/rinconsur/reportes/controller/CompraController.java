@@ -1,4 +1,4 @@
-package cl.rinconsur.ventas.controller;
+package cl.rinconsur.reportes.controller;
 
 import java.time.LocalDate;
 
@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import cl.rinconsur.ventas.dto.CompraNuevaDTO;
-import cl.rinconsur.ventas.service.CompraService;
+import cl.rinconsur.reportes.dto.CompraNuevaDTO;
+import cl.rinconsur.reportes.service.CompraService;
 
 @RestController
 @RequestMapping("/api/v1/compras")

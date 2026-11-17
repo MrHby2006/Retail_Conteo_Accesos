@@ -1,4 +1,4 @@
-package cl.rinconsur.ventas.dto;
+package cl.rinconsur.reportes.dto;
 
 import java.time.LocalDateTime;
 

@@ -13,7 +13,7 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("MS Reportes API")
-                        .description("Indicadores para el administrador")
+                        .description("Indicadores para el administrador y compras registradas en caja con la foto de la boleta")
                         .version("1.0.0"));
     }
 }
