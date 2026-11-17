@@ -128,13 +128,13 @@ services:
     networks:
       - rinconsur-net
 
-  ms-ventas:
+  ms-reportes:
     build:
-      context: ./ms-ventas
+      context: ./ms-reportes
       dockerfile: Dockerfile
-    container_name: ms-ventas
+    container_name: ms-reportes
     ports:
-      - "8085:8085"
+      - "8086:8086"
     environment:
       EUREKA_URL: http://eureka-server:8761/eureka/
       TZ: America/Santiago
@@ -151,29 +151,6 @@ services:
     restart: on-failure
     volumes:
       - boletas-data:/app/boletas
-    networks:
-      - rinconsur-net
-
-  ms-reportes:
-    build:
-      context: ./ms-reportes
-      dockerfile: Dockerfile
-    container_name: ms-reportes
-    ports:
-      - "8086:8086"
-    environment:
-      EUREKA_URL: http://eureka-server:8761/eureka/
-      TZ: America/Santiago
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USUARIO: root
-      DB_CLAVE: ${MYSQL_ROOT_PASSWORD}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      eureka-server:
-        condition: service_started
-    restart: on-failure
     networks:
       - rinconsur-net
 
@@ -197,8 +174,6 @@ services:
       ms-notificaciones:
         condition: service_started
       ms-accesos:
-        condition: service_started
-      ms-ventas:
         condition: service_started
       ms-reportes:
         condition: service_started

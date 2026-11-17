@@ -46,4 +46,22 @@ public class AccesoClient {
             throw new RuntimeException("No se pudieron traer los accesos desde ms-accesos");
         }
     }
+
+    public void marcarCompra(Long idPersona) {
+        webClientBuilder.build()
+                .put()
+                .uri("http://ms-accesos/api/v1/ingresos/{id}/compra", idPersona)
+                .retrieve()
+                .toBodilessEntity()
+                .block();
+    }
+
+    public void quitarCompra(Long idPersona) {
+        webClientBuilder.build()
+                .put()
+                .uri("http://ms-accesos/api/v1/ingresos/{id}/quitar-compra", idPersona)
+                .retrieve()
+                .toBodilessEntity()
+                .block();
+    }
 }
