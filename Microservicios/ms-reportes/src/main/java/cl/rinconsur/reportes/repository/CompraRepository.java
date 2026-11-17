@@ -1,4 +1,4 @@
-package cl.rinconsur.ventas.repository;
+package cl.rinconsur.reportes.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import cl.rinconsur.ventas.model.Compra;
+import cl.rinconsur.reportes.model.Compra;
 
 @Repository
 public interface CompraRepository extends JpaRepository<Compra, Long> {

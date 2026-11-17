@@ -1,4 +1,4 @@
-package cl.rinconsur.ventas.model;
+package cl.rinconsur.reportes.model;
 
 import java.time.LocalDateTime;
 

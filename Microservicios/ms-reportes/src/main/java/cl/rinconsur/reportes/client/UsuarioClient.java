@@ -1,10 +1,10 @@
-package cl.rinconsur.ventas.client;
+package cl.rinconsur.reportes.client;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import cl.rinconsur.ventas.dto.UsuarioDTO;
+import cl.rinconsur.reportes.dto.UsuarioDTO;
 
 @Component
 public class UsuarioClient {

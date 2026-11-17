@@ -26,15 +26,10 @@ spring:
               predicates:
                 - Path=/api/v1/accesos,/api/v1/accesos/**,/api/v1/ingresos,/api/v1/ingresos/**
 
-            - id: ms-ventas
-              uri: lb://ms-ventas
-              predicates:
-                - Path=/api/v1/compras,/api/v1/compras/**
-
             - id: ms-reportes
               uri: lb://ms-reportes
               predicates:
-                - Path=/api/v1/reportes/**
+                - Path=/api/v1/reportes/**,/api/v1/compras,/api/v1/compras/**
 
 server:
   port: 8080
