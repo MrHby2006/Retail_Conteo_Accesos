@@ -2,6 +2,7 @@ package com.example.rentail_conteo.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rentail_conteo.R
@@ -61,6 +63,13 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_logo),
+                contentDescription = "Logo FlujoSur",
+                modifier = Modifier
+                    .height(80.dp)
+                    .padding(bottom = Dimens.espacioChico)
+            )
             Text("FlujoSur", style = MaterialTheme.typography.headlineLarge)
             Text("Ingresa con tu RUT y tu contraseña", style = MaterialTheme.typography.bodyMedium)
 
