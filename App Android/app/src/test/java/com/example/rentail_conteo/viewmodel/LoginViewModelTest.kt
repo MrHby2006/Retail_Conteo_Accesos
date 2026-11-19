@@ -23,7 +23,7 @@ class LoginViewModelTest {
 
     @Test
     fun onIngresar_conDatosCompletos_devuelveTrueSinErrores() {
-        viewModel.onRutCambia("12.345.678-9")
+        viewModel.onRutCambia("12.345.678-5")
         viewModel.onContrasenaCambia("123456")
 
         viewModel.onIngresar{}
@@ -36,6 +36,8 @@ class LoginViewModelTest {
     fun onIngresar_conDatosIncompletos_devuelveFalseYMuestraErrores() {
         viewModel.onRutCambia("123")
         viewModel.onContrasenaCambia("32")
+
+        viewModel.onIngresar{}
 
         assertEquals("RUT inválido, revisa el dígito verificador", viewModel.uiState.value.errorRut)
         assertEquals("Mínimo 6 caracteres", viewModel.uiState.value.errorContrasena)
