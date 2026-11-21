@@ -19,9 +19,12 @@ import cl.rinconsur.reportes.dto.MetaDTO;
 import cl.rinconsur.reportes.service.EventoService;
 import cl.rinconsur.reportes.service.MetaService;
 import cl.rinconsur.reportes.service.ReporteService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/v1/reportes")
+@Tag(name = "Reportes", description = "Operaciones de los reportes")
 public class ReporteController {
 
     @Autowired
@@ -34,6 +37,7 @@ public class ReporteController {
     private MetaService metaServ;
 
     @GetMapping("/indicadores")
+    @Operation(summary = "Retorna los indicadores de fechas")
     public ResponseEntity<?> indicadores(@RequestParam(required = false) LocalDate desde,
                                          @RequestParam(required = false) LocalDate hasta,
                                          @RequestParam(required = false) Long idAcceso) {
@@ -45,16 +49,19 @@ public class ReporteController {
     }
 
     @GetMapping("/tipos-evento")
+    @Operation(summary = "Retorna los tipos de eventos")
     public ResponseEntity<?> tiposEvento() {
         return ResponseEntity.ok(eventoServ.tipos());
     }
 
     @GetMapping("/eventos")
+    @Operation(summary = "Retorna la lista de eventos que hay guardados")
     public ResponseEntity<?> eventos(@RequestParam LocalDate desde, @RequestParam LocalDate hasta) {
         return ResponseEntity.ok(eventoServ.listar(desde, hasta));
     }
 
     @PostMapping("/eventos")
+    @Operation(summary = "Crea eventos para la tienda")
     public ResponseEntity<?> crearEvento(@RequestBody EventoDTO dto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(eventoServ.crear(dto));
@@ -64,6 +71,7 @@ public class ReporteController {
     }
 
     @DeleteMapping("/eventos/{id}")
+    @Operation(summary = "Elimina los eventos creados mediante su id")
     public ResponseEntity<?> eliminarEvento(@PathVariable Long id) {
         try {
             eventoServ.eliminar(id);
@@ -74,11 +82,13 @@ public class ReporteController {
     }
 
     @GetMapping("/metas")
+    @Operation(summary = "Retorna la lista de metricas")
     public ResponseEntity<?> metas() {
         return ResponseEntity.ok(metaServ.listar());
     }
 
     @PostMapping("/metas")
+    @Operation(summary = "Crea metricas para su analisis")
     public ResponseEntity<?> guardarMeta(@RequestBody MetaDTO dto) {
         try {
             return ResponseEntity.ok(metaServ.guardar(dto));

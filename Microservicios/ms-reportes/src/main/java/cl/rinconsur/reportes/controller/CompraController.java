@@ -19,15 +19,19 @@ import org.springframework.web.multipart.MultipartFile;
 
 import cl.rinconsur.reportes.dto.CompraNuevaDTO;
 import cl.rinconsur.reportes.service.CompraService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/v1/compras")
+@Tag(name = "Compras", description = "Operaciones de las compras")
 public class CompraController {
 
     @Autowired
     private CompraService serv;
 
     @PostMapping
+    @Operation(summary = "Crea la compra en la base de datos")
     public ResponseEntity<?> registrar(@RequestBody CompraNuevaDTO dto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(serv.registrar(dto));
@@ -37,11 +41,13 @@ public class CompraController {
     }
 
     @GetMapping
+    @Operation(summary = "Retorna la lista de las compras creadas")
     public ResponseEntity<?> listar(@RequestParam(required = false) LocalDate fecha) {
         return ResponseEntity.ok(serv.listar(fecha));
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Retorna una compra dependiendo de su id")
     public ResponseEntity<?> buscar(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(serv.buscarPorId(id));
@@ -51,6 +57,7 @@ public class CompraController {
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Edita la información de la compra en caso de que sea erronea")
     public ResponseEntity<?> editar(@PathVariable Long id, @RequestBody CompraNuevaDTO dto) {
         try {
             return ResponseEntity.ok(serv.editar(id, dto));
@@ -60,6 +67,7 @@ public class CompraController {
     }
 
     @DeleteMapping("/{id}")
+    @Schema(summary = "Elimina una compra del sistema en base a su id")
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
         try {
             serv.eliminar(id);
@@ -70,6 +78,7 @@ public class CompraController {
     }
 
     @PostMapping(value = "/{id}/boleta", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Schema(summary = "Se encarga de subir la foto de la boleta en el registro de la compra")
     public ResponseEntity<?> subirBoleta(@PathVariable Long id, @RequestParam("archivo") MultipartFile archivo) {
         try {
             return ResponseEntity.ok(serv.guardarFotoBoleta(id, archivo));
@@ -79,6 +88,7 @@ public class CompraController {
     }
 
     @GetMapping("/{id}/boleta")
+    @Schema(summary = "Retorna la foto de la boleta")
     public ResponseEntity<?> verBoleta(@PathVariable Long id) {
         try {
             return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(serv.leerFotoBoleta(id));

@@ -19,20 +19,25 @@ import cl.rinconsur.usuarios.dto.CambioContrasenaDTO;
 import cl.rinconsur.usuarios.dto.EmpleadoDTO;
 import cl.rinconsur.usuarios.dto.PerfilDTO;
 import cl.rinconsur.usuarios.service.UsuarioService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/v1/usuarios")
+@Tag(name = "Usuarios", description = "Operaciones de los usuarios")
 public class UsuarioController {
 
     @Autowired
     private UsuarioService serv;
 
     @GetMapping
+    @Operation(summary = "Retorna la lista de los usuarios creados")
     public ResponseEntity<?> listar(@RequestParam(required = false) String rol) {
         return ResponseEntity.ok(serv.listar(rol));
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Retorna un usuario diseado en base a su id")
     public ResponseEntity<?> buscar(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(serv.buscarPorId(id));
@@ -42,6 +47,7 @@ public class UsuarioController {
     }
 
     @PostMapping
+    @Operation(summary = "Crea un nuevo usuario dentro del sistema")
     public ResponseEntity<?> crear(@RequestBody EmpleadoDTO dto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(serv.crear(dto));
@@ -51,6 +57,7 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Actualiza los datos del usuario en la pantalla del admin")
     public ResponseEntity<?> editar(@PathVariable Long id, @RequestBody EmpleadoDTO dto) {
         try {
             return ResponseEntity.ok(serv.editar(id, dto));
@@ -60,6 +67,7 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Elimina a un usuario en base a su id")
     public ResponseEntity<?> desactivar(@PathVariable Long id) {
         try {
             serv.desactivar(id);
@@ -70,6 +78,7 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}/perfil")
+    @Operation(summary = "Actualiza los datos del usuario den la pantalla del perfil")
     public ResponseEntity<?> perfil(@PathVariable Long id, @RequestBody PerfilDTO dto) {
         try {
             return ResponseEntity.ok(serv.actualizarPerfil(id, dto));
@@ -79,6 +88,7 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}/contrasena")
+    @Operation(summary = "Cambia la contraseña")
     public ResponseEntity<?> cambiarContrasena(@PathVariable Long id, @RequestBody CambioContrasenaDTO dto) {
         try {
             return ResponseEntity.ok(serv.cambiarContrasena(id, dto));
@@ -88,6 +98,7 @@ public class UsuarioController {
     }
 
     @PostMapping(value = "/{id}/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Crea la url de la foto de perfil del usuario")
     public ResponseEntity<?> subirFoto(@PathVariable Long id, @RequestParam("archivo") MultipartFile archivo) {
         try {
             return ResponseEntity.ok(serv.guardarFoto(id, archivo));
@@ -97,6 +108,7 @@ public class UsuarioController {
     }
 
     @GetMapping("/{id}/foto")
+    @Operation(summary = "Retorna la url de la foto para mostrarla")
     public ResponseEntity<?> verFoto(@PathVariable Long id) {
         try {
             return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(serv.leerFoto(id));
@@ -106,6 +118,7 @@ public class UsuarioController {
     }
 
     @PostMapping("/{id}/contrasena-temporal")
+    @Operation(summary = "Crea una contraseña temporal que el usuario puede usar")
     public ResponseEntity<?> contrasenaTemporal(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(serv.nuevaContrasenaTemporal(id));
