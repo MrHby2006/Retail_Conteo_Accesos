@@ -161,8 +161,8 @@ public class TurnoService {
         List<TurnoDTO> semana = listarRango(desde, hasta, true);
         List<String> correos = new ArrayList<>();
         for (UsuarioDTO u : usuarioCli.listar()) {
-            if (u.getCorreoPersonal() != null && !u.getCorreoPersonal().isBlank()) {
-                correos.add(u.getCorreoPersonal());
+            if (u.getCorreo() != null && !u.getCorreo().isBlank()) {
+                correos.add(u.getCorreo());
             }
         }
         boolean enviado = notificacionCli.enviarMasivo(new CorreoMasivoDTO("HORARIO_PUBLICADO", correos,

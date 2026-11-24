@@ -50,7 +50,7 @@ public class IngresoService {
 
     public IngresoDTO registrar(IngresoNuevoDTO dto) {
         if (dto.getIdAcceso() == null || dto.getIdObservador() == null || dto.getIdRango() == null || dto.getIdAltura() == null
-                || dto.getIdColorSuperior() == null || dto.getIdColorInferior() == null || dto.getIdTipoCompania() == null) {
+                || dto.getIdColorSuperior() == null || dto.getIdColorInferior() == null) {
             throw new RuntimeException("Faltan datos de la persona que ingresó");
         }
         Acceso acceso = accesoRep.findById(dto.getIdAcceso()).orElseThrow(() -> new RuntimeException("Acceso no encontrado"));
@@ -66,7 +66,9 @@ public class IngresoService {
         p.setAltura(alturaRep.findById(dto.getIdAltura()).orElseThrow(() -> new RuntimeException("Altura no encontrada")));
         p.setColorSuperior(colorRep.findById(dto.getIdColorSuperior()).orElseThrow(() -> new RuntimeException("Color de arriba no encontrado")));
         p.setColorInferior(colorRep.findById(dto.getIdColorInferior()).orElseThrow(() -> new RuntimeException("Color de abajo no encontrado")));
-        p.setTipoCompania(companiaRep.findById(dto.getIdTipoCompania()).orElseThrow(() -> new RuntimeException("Tipo de compañía no encontrado")));
+        if (dto.getIdTipoCompania() != null) {
+            p.setTipoCompania(companiaRep.findById(dto.getIdTipoCompania()).orElseThrow(() -> new RuntimeException("Tipo de compañía no encontrado")));
+        }
         p.setDetalle(dto.getDetalle());
         p.setCompro(false);
         p.setAnulado(false);
@@ -166,7 +168,7 @@ public class IngresoService {
         dto.setAltura(p.getAltura().getNombre());
         dto.setColorSuperior(p.getColorSuperior().getNombre());
         dto.setColorInferior(p.getColorInferior().getNombre());
-        dto.setTipoCompania(p.getTipoCompania().getNombre());
+        dto.setTipoCompania(p.getTipoCompania() == null ? null : p.getTipoCompania().getNombre());
         dto.setDetalle(p.getDetalle());
         dto.setCompro(p.isCompro());
         dto.setAnulado(p.isAnulado());

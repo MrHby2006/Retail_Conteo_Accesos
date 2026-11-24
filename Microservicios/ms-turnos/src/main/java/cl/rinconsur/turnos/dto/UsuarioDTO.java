@@ -17,7 +17,7 @@ public class UsuarioDTO {
 
     private String codigoRol;
 
-    private String correoPersonal;
+    private String correo;
 
     private boolean activo;
 }

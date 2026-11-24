@@ -57,7 +57,9 @@ public class ReporteService {
             }
             sumar(porAcceso, buscarClave(porAcceso, i.getCodigoAcceso()), i.isCompro());
             sumar(porRango, i.getRango(), i.isCompro());
-            sumar(porCompania, i.getTipoCompania(), i.isCompro());
+            if (i.getTipoCompania() != null) {
+                sumar(porCompania, i.getTipoCompania(), i.isCompro());
+            }
             sumar(porHora, String.format("%02d:00", i.getFechaHora().getHour()), i.isCompro());
         }
 

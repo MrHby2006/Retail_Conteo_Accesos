@@ -11,8 +11,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PerfilDTO {
 
-    private String correoPersonal;
-
     private String telefono;
 
     private LocalDate fechaNacimiento;

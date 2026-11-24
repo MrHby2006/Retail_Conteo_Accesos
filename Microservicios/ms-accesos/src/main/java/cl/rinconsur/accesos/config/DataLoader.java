@@ -30,11 +30,11 @@ public class DataLoader {
             accesoRep.save(new Acceso(null, "A3", "Acceso Estacionamiento", "Conecta con el estacionamiento subterráneo", true));
             accesoRep.save(new Acceso(null, "A4", "Acceso Conexión", "Comunica con la tienda vecina", true));
 
-            rangoRep.save(new RangoEtario(null, "Niño (0-12)", 0, 12, 1));
-            rangoRep.save(new RangoEtario(null, "Joven (13-25)", 13, 25, 2));
-            rangoRep.save(new RangoEtario(null, "Adulto (26-40)", 26, 40, 3));
-            rangoRep.save(new RangoEtario(null, "Adulto (41-60)", 41, 60, 4));
-            rangoRep.save(new RangoEtario(null, "Mayor (60+)", 61, 120, 5));
+            rangoRep.save(new RangoEtario(null, "Niño", 0, 12, 1));
+            rangoRep.save(new RangoEtario(null, "Adolescente", 13, 17, 2));
+            rangoRep.save(new RangoEtario(null, "Joven", 18, 29, 3));
+            rangoRep.save(new RangoEtario(null, "Adulto", 30, 59, 4));
+            rangoRep.save(new RangoEtario(null, "Mayor", 60, 120, 5));
 
             alturaRep.save(new Altura(null, "Baja", 1));
             alturaRep.save(new Altura(null, "Media", 2));
@@ -47,7 +47,7 @@ public class DataLoader {
             colorRep.save(new Color(null, "Rojo", "#B22222"));
             colorRep.save(new Color(null, "Verde", "#2E7D32"));
             colorRep.save(new Color(null, "Café", "#6D4C41"));
-            colorRep.save(new Color(null, "Amarillo", "#F9A825"));
+            colorRep.save(new Color(null, "Otro", null));
 
             companiaRep.save(new TipoCompania(null, "Sola"));
             companiaRep.save(new TipoCompania(null, "En pareja"));

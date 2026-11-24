@@ -153,10 +153,10 @@ public class SolicitudService {
     }
 
     private void avisar(UsuarioDTO persona, SolicitudDTO solicitud) {
-        if (persona == null || persona.getCorreoPersonal() == null) {
+        if (persona == null || persona.getCorreo() == null) {
             return;
         }
-        notificacionCli.enviarCorreo(new CorreoDTO("SOLICITUD_CAMBIO", persona.getId(), persona.getCorreoPersonal(),
+        notificacionCli.enviarCorreo(new CorreoDTO("SOLICITUD_CAMBIO", persona.getId(), persona.getCorreo(),
                 "Te proponen un cambio de turno", PlantillasCorreo.solicitud(persona.getNombres(), descripcion(solicitud))));
     }
 
