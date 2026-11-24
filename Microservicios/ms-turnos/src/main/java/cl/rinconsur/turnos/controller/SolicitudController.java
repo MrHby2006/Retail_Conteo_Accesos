@@ -48,7 +48,7 @@ public class SolicitudController {
     }
 
     @PutMapping("/{id}/responder")
-    @Schema(summary = "Actualiza la solicitud respondiendo a esta")
+    @Operation(summary = "Actualiza la solicitud respondiendo a esta")
     public ResponseEntity<?> responder(@PathVariable Long id, @RequestBody RespuestaSolicitudDTO dto) {
         try {
             return ResponseEntity.ok(serv.responder(id, dto));

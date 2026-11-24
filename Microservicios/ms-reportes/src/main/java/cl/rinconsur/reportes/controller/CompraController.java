@@ -67,7 +67,7 @@ public class CompraController {
     }
 
     @DeleteMapping("/{id}")
-    @Schema(summary = "Elimina una compra del sistema en base a su id")
+    @Operation(summary = "Elimina una compra del sistema en base a su id")
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
         try {
             serv.eliminar(id);
@@ -78,7 +78,7 @@ public class CompraController {
     }
 
     @PostMapping(value = "/{id}/boleta", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Schema(summary = "Se encarga de subir la foto de la boleta en el registro de la compra")
+    @Operation(summary = "Se encarga de subir la foto de la boleta en el registro de la compra")
     public ResponseEntity<?> subirBoleta(@PathVariable Long id, @RequestParam("archivo") MultipartFile archivo) {
         try {
             return ResponseEntity.ok(serv.guardarFotoBoleta(id, archivo));
@@ -88,7 +88,7 @@ public class CompraController {
     }
 
     @GetMapping("/{id}/boleta")
-    @Schema(summary = "Retorna la foto de la boleta")
+    @Operation(summary = "Retorna la foto de la boleta")
     public ResponseEntity<?> verBoleta(@PathVariable Long id) {
         try {
             return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(serv.leerFotoBoleta(id));

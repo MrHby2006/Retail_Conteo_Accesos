@@ -63,7 +63,7 @@ public class PersonaIngreso {
     private Color colorInferior;
 
     @ManyToOne
-    @JoinColumn(name = "id_tipo_compania", nullable = false)
+    @JoinColumn(name = "id_tipo_compania")
     @Schema(description = "Los tipos de compañia que puede elegir el observador con el que va el cliente", example = "Sola")
     private TipoCompania tipoCompania;
 
@@ -72,7 +72,7 @@ public class PersonaIngreso {
     private String detalle;
 
     @Column(nullable = false)
-    @Schema(description = "Representa si el cliente compró" example = "Si el cliente compro = True. Si no = False")
+    @Schema(description = "Representa si el cliente compró", example = "Si el cliente compro = True. Si no = False")
     private boolean compro;
 
     @Column(nullable = false)
