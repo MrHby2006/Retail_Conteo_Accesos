@@ -5,8 +5,6 @@ data class PerfilUIState(
     val fotoUrl: String? = null,
     val subiendoFoto: Boolean = false,
     val errorFoto: String? = null,
-    val correoPersonal: String = "",
-    val errorCorreo: String? = null,
     val fechaNacimiento: String? = null,
     val errorFecha: String? = null,
     val eligiendoFecha: Boolean = false,

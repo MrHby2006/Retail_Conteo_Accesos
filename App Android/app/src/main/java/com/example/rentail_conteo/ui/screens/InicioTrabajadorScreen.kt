@@ -24,7 +24,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -113,10 +112,6 @@ fun InicioTrabajadorScreen(
                     turno = turno,
                     onIr = if (turno.puesto == Turno.PUESTO_CAJA) onIrACaja else onIrAPuerta
                 )
-                TextButton(onClick = viewModel::probarAviso) {
-                    Icon(painterResource(R.drawable.ic_campana), contentDescription = null)
-                    Text("  Probar aviso de fin de turno")
-                }
             } else if (!uiState.cargando) {
                 Text("Hoy no tienes más turnos asignados", style = MaterialTheme.typography.titleMedium)
                 Text(

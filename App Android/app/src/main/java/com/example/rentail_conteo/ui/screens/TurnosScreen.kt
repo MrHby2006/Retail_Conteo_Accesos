@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rentail_conteo.model.Franjas
 import com.example.rentail_conteo.model.Turno
+import com.example.rentail_conteo.model.TurnosUIState
 import com.example.rentail_conteo.model.Usuario
 import com.example.rentail_conteo.ui.components.BarraSuperior
 import com.example.rentail_conteo.ui.components.SaludoCumpleanos
@@ -110,7 +111,10 @@ fun TurnosScreen(
                     opciones = uiState.diasSemana,
                     seleccionada = uiState.diaElegido,
                     onSeleccionar = viewModel::onDiaElegido,
-                    textoDe = { Fechas.diaCorto(it) }
+                    textoDe = {
+                        val listo = uiState.esProximaSemana && uiState.faltaEn(it).isEmpty()
+                        Fechas.diaCorto(it) + if (listo) " ✓" else ""
+                    }
                 )
             }
 
@@ -129,7 +133,7 @@ fun TurnosScreen(
             if (enEdicion == null && !uiState.esProximaSemana) {
                 Text(
                     "Esta semana ya está publicada. Si alguien no puede venir, toca Modificar en su turno: " +
-                            "el cambio necesita que los trabajadores lo acepten.",
+                            "el cambio necesita que los trabajadores lo acepten. Los turnos en curso no se pueden modificar.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             } else {
@@ -176,11 +180,14 @@ fun TurnosScreen(
             }
 
             if (uiState.esProximaSemana && enEdicion == null) {
-                Boton(
-                    texto = "Publicar semana (${uiState.borradoresSemana} en borrador)",
-                    onClick = viewModel::onPedirPublicar,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                AvanceSemana(uiState)
+                if (uiState.semanaCompleta) {
+                    Boton(
+                        texto = "Publicar semana (${uiState.borradoresSemana} en borrador)",
+                        onClick = viewModel::onPedirPublicar,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
             HorizontalDivider()
@@ -198,6 +205,35 @@ fun TurnosScreen(
                     enEdicion = turno.id == enEdicion?.id,
                     onModificar = { viewModel.onModificar(turno) },
                     onQuitar = { viewModel.onQuitarBorrador(turno) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AvanceSemana(uiState: TurnosUIState) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(Dimens.espacioMedio),
+            verticalArrangement = Arrangement.spacedBy(Dimens.espacioMini)
+        ) {
+            Text(
+                "Semana: ${uiState.diasCompletos} de ${uiState.diasSemana.size} días completos",
+                style = MaterialTheme.typography.titleMedium
+            )
+            if (uiState.semanaCompleta) {
+                Text("Ya puedes publicar el horario.", style = MaterialTheme.typography.bodyMedium)
+            } else {
+                val falta = uiState.faltaEn(uiState.diaElegido)
+                Text(
+                    if (falta.isEmpty()) "${Fechas.diaCorto(uiState.diaElegido)} está completo. Sigue con los días sin ✓."
+                    else "En ${Fechas.diaCorto(uiState.diaElegido)} falta: ${falta.joinToString(", ")}.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    "Podrás publicar cuando cada día tenga al menos una caja y una puerta en la mañana y en la tarde.",
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }
@@ -233,6 +269,7 @@ private fun TarjetaTurno(turno: Turno, enEdicion: Boolean, onModificar: () -> Un
             when {
                 enEdicion -> Text("Editando", style = MaterialTheme.typography.labelLarge)
                 turno.yaTermino() -> Text("Terminado", style = MaterialTheme.typography.labelLarge)
+                turno.yaEmpezo() -> Text("En curso", style = MaterialTheme.typography.labelLarge)
                 turno.cambioPendiente -> Unit
                 else -> Column(horizontalAlignment = Alignment.End) {
                     TextButton(onClick = onModificar) { Text("Modificar") }

@@ -61,7 +61,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rentail_conteo.R
-import com.example.rentail_conteo.model.Franjas
 import com.example.rentail_conteo.model.PersonaIngreso
 import com.example.rentail_conteo.model.RegistrosClientesUIState
 import com.example.rentail_conteo.model.Usuario
@@ -175,7 +174,7 @@ private fun BuscarComprador(uiState: RegistrosClientesUIState, viewModel: Regist
         }
         item {
             SeleccionChips(
-                titulo = "Rango de edad",
+                titulo = "Edad",
                 opciones = uiState.rangos,
                 seleccionada = uiState.filtroRango,
                 onSeleccionar = viewModel::onFiltroRango,
@@ -184,7 +183,7 @@ private fun BuscarComprador(uiState: RegistrosClientesUIState, viewModel: Regist
         }
         item {
             SeleccionChips(
-                titulo = "Color de la ropa (arriba)",
+                titulo = "Color de arriba",
                 opciones = uiState.colores,
                 seleccionada = uiState.filtroColor,
                 onSeleccionar = viewModel::onFiltroColor,
@@ -193,38 +192,11 @@ private fun BuscarComprador(uiState: RegistrosClientesUIState, viewModel: Regist
         }
         item {
             SeleccionChips(
-                titulo = "Color de la ropa (abajo)",
+                titulo = "Color de abajo",
                 opciones = uiState.colores,
                 seleccionada = uiState.filtroColorAbajo,
                 onSeleccionar = viewModel::onFiltroColorAbajo,
                 textoDe = { it.nombre }
-            )
-        }
-        item {
-            SeleccionChips(
-                titulo = "Fecha de ingreso",
-                opciones = listOf(Fechas.hoy(), Fechas.ayer()),
-                seleccionada = uiState.filtroFecha,
-                onSeleccionar = viewModel::onFiltroFecha,
-                textoDe = { fecha -> if (fecha == Fechas.hoy()) "Hoy" else Fechas.diaCorto(fecha) }
-            )
-        }
-        item {
-            SeleccionChips(
-                titulo = "Filtrar por Acceso",
-                opciones = uiState.accesosDisponibles,
-                seleccionada = uiState.filtroAcceso,
-                onSeleccionar = viewModel::onFiltroAcceso,
-                textoDe = { "${it.codigo} · ${it.nombre}" }
-            )
-        }
-        item {
-            SeleccionChips(
-                titulo = "Turno / Franja",
-                opciones = Franjas.todas,
-                seleccionada = uiState.filtroFranja,
-                onSeleccionar = viewModel::onFiltroFranja,
-                textoDe = { it }
             )
         }
         if (uiState.cargando) {
@@ -261,29 +233,24 @@ private fun TarjetaPersona(persona: PersonaIngreso, onClick: () -> Unit, modifie
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(Modifier.padding(Dimens.espacioMedio)) {
+            Column(Modifier.weight(1f)) {
                 Text(
-                    "${persona.accesoCodigo} · ${Fechas.hora(persona.fechaHora)}",
+                    "Entró a las ${Fechas.hora(persona.fechaHora)}",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${persona.rangoEtario} · Arriba: ${persona.colorRopa}, Abajo: ${persona.colorRopaAbajo} · ${persona.compania}",
+                    text = "${persona.rangoEtario} · Altura ${persona.altura.lowercase()} · Arriba: ${persona.colorRopa}, Abajo: ${persona.colorRopaAbajo}",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 if (persona.detalle.isNotBlank()) {
                     Text(
-                        text = "Nota: ${persona.detalle}",
+                        text = "Detalle: ${persona.detalle}",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }
             }
-            Icon(
-                painter = painterResource(id = R.drawable.ic_volver),
-                contentDescription = "Seleccionar",
-                modifier = Modifier.size(20.dp)
-            )
         }
     }
 }

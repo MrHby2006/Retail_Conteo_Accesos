@@ -99,11 +99,6 @@ object AvisoTurno {
         )
     }
 
-    fun mostrarAhora(context: Context, turno: Turno, turnosDelDia: List<Turno>): Boolean {
-        val (titulo, detalle) = textos(turno, turnosDelDia)
-        return mostrar(context, turno.id, turno.idUsuario, titulo, detalle)
-    }
-
     fun mostrar(context: Context, idTurno: Long, idUsuario: Long, titulo: String, detalle: String): Boolean {
         if (idUsuario != SesionPreferencias(context).leer()) return false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&

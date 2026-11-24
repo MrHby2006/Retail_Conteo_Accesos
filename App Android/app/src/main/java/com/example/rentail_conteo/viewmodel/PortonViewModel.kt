@@ -34,8 +34,7 @@ class PortonViewModel : ViewModel() {
                         accesos = accesos,
                         rangos = catalogos.rangos.aOpciones(),
                         alturas = catalogos.alturas.aOpciones(),
-                        colores = catalogos.colores.aOpciones(),
-                        companias = catalogos.companias.aOpciones()
+                        colores = catalogos.colores.aOpciones()
                     )
                 }
                 val turno = turnoRepositorio.turnoDeHoy(idObservador) ?: return@launch
@@ -77,8 +76,6 @@ class PortonViewModel : ViewModel() {
     fun onColorAbajoElegido(valor: Opcion) =
         _uiState.update { it.copy(colorRopaAbajo = valor, errorColorAbajo = null) }
 
-    fun onCompaniaElegida(valor: Opcion) = _uiState.update { it.copy(compania = valor, errorCompania = null) }
-
     fun onDetalleCambia(valor: String) = _uiState.update { it.copy(detalle = valor, errorDetalle = null) }
 
     fun mensajeMostrado() = _uiState.update { it.copy(mensaje = null) }
@@ -99,17 +96,16 @@ class PortonViewModel : ViewModel() {
         val errorAltura = if (estado.altura == null) "Elige la altura" else null
         val errorColor = if (estado.colorRopa == null) "Elige el color de arriba" else null
         val errorColorAbajo = if (estado.colorRopaAbajo == null) "Elige el color de abajo" else null
-        val errorCompania = if (estado.compania == null) "Elige si viene sola o acompañada" else null
         val errorDetalle = if (estado.detalle.trim().length > 60) "Máximo 60 caracteres" else null
 
         _uiState.update {
             it.copy(
                 errorAcceso = errorAcceso, errorRango = errorRango, errorAltura = errorAltura,
-                errorColor = errorColor, errorColorAbajo = errorColorAbajo, errorCompania = errorCompania,
+                errorColor = errorColor, errorColorAbajo = errorColorAbajo,
                 errorDetalle = errorDetalle
             )
         }
-        val hayErrores = listOf(errorAcceso, errorRango, errorAltura, errorColor, errorColorAbajo, errorCompania, errorDetalle)
+        val hayErrores = listOf(errorAcceso, errorRango, errorAltura, errorColor, errorColorAbajo, errorDetalle)
             .any { it != null }
         if (hayErrores) return
 
@@ -121,7 +117,6 @@ class PortonViewModel : ViewModel() {
             idAltura = estado.altura!!.id,
             idColorSuperior = estado.colorRopa!!.id,
             idColorInferior = estado.colorRopaAbajo!!.id,
-            idTipoCompania = estado.compania!!.id,
             detalle = estado.detalle.trim()
         )
         _uiState.update { it.copy(guardando = true) }
@@ -131,7 +126,7 @@ class PortonViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         rangoEtario = null, altura = null, colorRopa = null, colorRopaAbajo = null,
-                        compania = null, detalle = "", guardando = false,
+                        detalle = "", guardando = false,
                         mensaje = "Ingreso registrado en ${acceso.codigo}"
                     )
                 }

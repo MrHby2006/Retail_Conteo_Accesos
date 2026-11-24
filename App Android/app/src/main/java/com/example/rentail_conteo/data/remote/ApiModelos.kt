@@ -50,7 +50,6 @@ data class CuentaCreadaResponse(
 )
 
 data class PerfilRequest(
-    val correoPersonal: String,
     val telefono: String?,
     val fechaNacimiento: String?,
     val fotoUrl: String? = null
@@ -182,8 +181,7 @@ data class OpcionResponse(
 data class CatalogosResponse(
     val rangos: List<OpcionResponse>,
     val alturas: List<OpcionResponse>,
-    val colores: List<OpcionResponse>,
-    val companias: List<OpcionResponse>
+    val colores: List<OpcionResponse>
 )
 
 data class IngresoRequest(
@@ -193,7 +191,6 @@ data class IngresoRequest(
     val idAltura: Long,
     val idColorSuperior: Long,
     val idColorInferior: Long,
-    val idTipoCompania: Long,
     val detalle: String
 )
 
@@ -207,7 +204,6 @@ data class IngresoResponse(
     val altura: String,
     val colorSuperior: String,
     val colorInferior: String,
-    val tipoCompania: String,
     val detalle: String?,
     val compro: Boolean,
     val anulado: Boolean
@@ -250,7 +246,6 @@ data class IndicadoresResponse(
     val cumpleMeta: Boolean?,
     val porAcceso: List<FilaIndicadorResponse>,
     val porRango: List<FilaIndicadorResponse>,
-    val porCompania: List<FilaIndicadorResponse>,
     val porHora: List<FilaIndicadorResponse>
 )
 
@@ -316,7 +311,6 @@ fun IngresoResponse.aPersona() = PersonaIngreso(
     altura = altura,
     colorRopa = colorSuperior,
     colorRopaAbajo = colorInferior,
-    compania = tipoCompania,
     detalle = detalle ?: "",
     compro = compro
 )

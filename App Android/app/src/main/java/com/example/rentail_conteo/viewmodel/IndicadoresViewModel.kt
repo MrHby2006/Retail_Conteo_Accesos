@@ -65,7 +65,6 @@ class IndicadoresViewModel : ViewModel() {
                     compradores = datos.compradores,
                     porRango = porRango,
                     porAcceso = porAcceso,
-                    porCompania = datos.porCompania.map { fila -> fila.aFila() },
                     accesoMasDePaso = masDePaso,
                     perfilQueMasCompra = masCompra?.grupo,
                     perfilQueNoCompra = noCompra?.grupo,

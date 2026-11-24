@@ -23,7 +23,6 @@ class PortonViewModelTest {
         assertEquals("Elige la altura", viewModel.uiState.value.errorAltura)
         assertEquals("Elige el color de arriba", viewModel.uiState.value.errorColor)
         assertEquals("Elige el color de abajo", viewModel.uiState.value.errorColorAbajo)
-        assertEquals("Elige si viene sola o acompañada", viewModel.uiState.value.errorCompania)
     }
 
     @Test

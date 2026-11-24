@@ -3,7 +3,6 @@ package com.example.rentail_conteo.viewmodel
 import android.app.Application
 import android.graphics.Bitmap
 import android.net.Uri
-import android.util.Patterns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.rentail_conteo.data.ConvertidorImagen
@@ -13,7 +12,6 @@ import com.example.rentail_conteo.data.remote.RetrofitClient
 import com.example.rentail_conteo.model.PerfilUIState
 import com.example.rentail_conteo.model.Usuario
 import com.example.rentail_conteo.util.Fechas
-import com.example.rentail_conteo.util.GeneradorCorreo
 import com.example.rentail_conteo.util.Seguridad
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +26,7 @@ class PerfilViewModel(application: Application) : AndroidViewModel(application) 
     val uiState: StateFlow<PerfilUIState> = _uiState.asStateFlow()
 
     companion object {
-        const val EDAD_MINIMA = 15
+        const val EDAD_MINIMA = 18
         const val EDAD_MAXIMA = 90
     }
 
@@ -36,12 +34,7 @@ class PerfilViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             try {
                 mostrarUsuario(repositorio.obtener(idUsuario))
-                _uiState.update {
-                    it.copy(
-                        correoPersonal = it.usuario?.correoPersonal ?: "",
-                        fechaNacimiento = it.usuario?.fechaNacimiento
-                    )
-                }
+                _uiState.update { it.copy(fechaNacimiento = it.usuario?.fechaNacimiento) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(mensaje = e.message) }
             }
@@ -80,8 +73,6 @@ class PerfilViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun onCorreoCambia(valor: String) = _uiState.update { it.copy(correoPersonal = valor.trim(), errorCorreo = null) }
-
     fun onAbrirCalendario() = _uiState.update { it.copy(eligiendoFecha = true) }
 
     fun onCerrarCalendario() = _uiState.update { it.copy(eligiendoFecha = false) }
@@ -101,38 +92,23 @@ class PerfilViewModel(application: Application) : AndroidViewModel(application) 
         val usuario = estado.usuario ?: return
         val fecha = estado.fechaNacimiento
 
-        val errorCorreo = when {
-            estado.correoPersonal.isBlank() -> "El correo personal es obligatorio"
-            !Patterns.EMAIL_ADDRESS.matcher(estado.correoPersonal).matches() -> "Ingresa un correo válido"
-            GeneradorCorreo.esDeLaEmpresa(estado.correoPersonal) -> "Debe ser un correo personal, no de la empresa"
-            else -> null
-        }
         val errorFecha = when {
-            fecha == null -> null
+            fecha == null -> "Elige tu fecha de nacimiento"
             fecha > Fechas.hoy() -> "La fecha no puede ser futura"
             Fechas.edad(fecha) < EDAD_MINIMA -> "Debes tener al menos $EDAD_MINIMA años"
             Fechas.edad(fecha) > EDAD_MAXIMA -> "Revisa el año de nacimiento"
             else -> null
         }
-        _uiState.update { it.copy(errorCorreo = errorCorreo, errorFecha = errorFecha) }
-        if (errorCorreo != null || errorFecha != null) return
+        _uiState.update { it.copy(errorFecha = errorFecha) }
+        if (errorFecha != null) return
 
         viewModelScope.launch {
             try {
-                val correoOcupado = repositorio.listar().any {
-                    it.id != usuario.id && it.correoPersonal.equals(estado.correoPersonal, ignoreCase = true)
-                }
-                if (correoOcupado) {
-                    _uiState.update { it.copy(errorCorreo = "Ese correo ya lo usa otro empleado") }
-                    return@launch
-                }
-                val actualizado = repositorio.actualizarPerfil(
-                    usuario.id, PerfilRequest(estado.correoPersonal, usuario.telefono, fecha)
-                )
+                val actualizado = repositorio.actualizarPerfil(usuario.id, PerfilRequest(usuario.telefono, fecha))
                 mostrarUsuario(actualizado)
                 _uiState.update { it.copy(usuarioActualizado = actualizado, mensaje = "Datos guardados") }
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorCorreo = e.message) }
+                _uiState.update { it.copy(mensaje = e.message) }
             }
         }
     }

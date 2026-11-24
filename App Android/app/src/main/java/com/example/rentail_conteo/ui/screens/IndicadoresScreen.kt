@@ -162,9 +162,6 @@ fun IndicadoresScreen(
                     Text("Perfil del público", style = MaterialTheme.typography.titleMedium)
                     Text("Compra más: ${uiState.perfilQueMasCompra ?: "sin compras aún"}")
                     Text("Más gente que NO compra: ${uiState.perfilQueNoCompra ?: "todos compraron"}")
-                    uiState.porCompania.forEach { fila ->
-                        Text("${fila.grupo}: compra el ${fila.conversion} % (${fila.compradores} de ${fila.ingresos})")
-                    }
                 }
             }
         }

@@ -50,7 +50,7 @@ class TurnosViewModel : ViewModel() {
         val dias = Fechas.diasDeLaSemana(Fechas.lunesDeLaSemana(if (proxima) 1 else 0))
         val dia = if (proxima) dias.first() else Fechas.hoy()
         _uiState.update {
-            it.copy(esProximaSemana = proxima, diasSemana = dias, diaElegido = dia).sinFormulario()
+            it.copy(esProximaSemana = proxima, diasSemana = dias, diaElegido = dia, turnosSemana = emptyList()).sinFormulario()
         }
         recargar()
     }
@@ -73,6 +73,7 @@ class TurnosViewModel : ViewModel() {
     fun onModificar(turno: Turno) {
         val error = when {
             turno.yaTermino() -> "Ese turno ya terminó, no se puede modificar"
+            turno.yaEmpezo() -> "Ese turno está en curso, no se puede modificar"
             turno.cambioPendiente -> "Ese turno ya tiene un cambio esperando que lo acepten"
             else -> null
         }
@@ -105,6 +106,10 @@ class TurnosViewModel : ViewModel() {
     }
 
     fun onPedirPublicar() {
+        if (!_uiState.value.semanaCompleta) {
+            _uiState.update { it.copy(mensaje = "Completa todos los días de la semana antes de publicar") }
+            return
+        }
         if (_uiState.value.borradoresSemana == 0) {
             _uiState.update { it.copy(mensaje = "No hay turnos nuevos para publicar") }
             return
@@ -137,6 +142,10 @@ class TurnosViewModel : ViewModel() {
         val franja = estado.franjaElegida
         val puesto = estado.puestoElegido
 
+        if (enEdicion != null && enEdicion.yaEmpezo()) {
+            _uiState.update { it.copy(mensaje = "Ese turno ya empezó, no se puede modificar").sinFormulario() }
+            return
+        }
         if (enEdicion == null && !estado.esProximaSemana) {
             _uiState.update { it.copy(mensaje = "Los turnos nuevos se arman para la próxima semana") }
             return
@@ -207,7 +216,7 @@ class TurnosViewModel : ViewModel() {
                 val delDia = turnoRepositorio.delDia(estado.diaElegido)
                 val semana = turnoRepositorio.semana(estado.diasSemana.first(), estado.diasSemana.last(), soloPublicados = false)
                 _uiState.update {
-                    it.copy(turnosDelDia = delDia, borradoresSemana = semana.count { turno -> turno.esBorrador })
+                    it.copy(turnosDelDia = delDia, turnosSemana = semana)
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(mensaje = e.message) }

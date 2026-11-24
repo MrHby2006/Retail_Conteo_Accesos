@@ -156,6 +156,15 @@ class EmpleadosViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 if (enEdicion != null) {
+                    if (estado.rolElegido != enEdicion.rolId) {
+                        val pendientes = turnoRepositorio.contarPendientes(enEdicion.id)
+                        if (pendientes > 0) {
+                            _uiState.update {
+                                it.copy(errorRol = "Tiene $pendientes turno(s) desde hoy. El supervisor debe reasignarlos antes de cambiarle el rol")
+                            }
+                            return@launch
+                        }
+                    }
                     repositorio.editar(enEdicion.id, datos)
                     _uiState.update {
                         EmpleadosUIState(empleados = it.empleados, mensaje = "Datos de $nombres actualizados")
@@ -202,7 +211,7 @@ class EmpleadosViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         cuentaCreada = CuentaCreada(
-                            titulo = "Contraseña temporal nueva",
+                            titulo = "Recuperación de clave",
                             nombre = empleado.nombre,
                             correoEmpresa = empleado.correo,
                             contrasenaTemporal = cuenta.contrasenaTemporal,

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.rentail_conteo.data.TurnoRepository
+import com.example.rentail_conteo.model.Franjas
 import com.example.rentail_conteo.model.InicioTrabajadorUIState
 import com.example.rentail_conteo.model.SolicitudCambio
 import com.example.rentail_conteo.model.Turno
@@ -65,6 +66,8 @@ class InicioTrabajadorViewModel(application: Application) : AndroidViewModel(app
     }
 
     private suspend fun buscarChoque(solicitud: SolicitudCambio): String? {
+        val inicio = Fechas.aMillisLocal("${solicitud.fecha} ${Franjas.horaInicio(solicitud.franjaActual)}")
+        if (inicio <= System.currentTimeMillis()) return "ese turno ya empezó"
         val otros = repositorio.delDia(solicitud.fecha).filter {
             it.id != solicitud.idTurno && it.franja == solicitud.franjaNueva
         }
@@ -75,12 +78,6 @@ class InicioTrabajadorViewModel(application: Application) : AndroidViewModel(app
                 "la puerta ${solicitud.puestoNuevo} ya tiene a alguien en esa franja"
             else -> null
         }
-    }
-
-    fun probarAviso() {
-        val turno = _uiState.value.turnoHoy ?: return
-        val ok = AvisoTurno.mostrarAhora(getApplication(), turno, turnosDelDia)
-        if (!ok) avisarSinPermiso()
     }
 
     fun avisarSinPermiso() {
