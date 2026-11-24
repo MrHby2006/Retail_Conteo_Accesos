@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.rentail_conteo.model.Rol
 import com.example.rentail_conteo.model.Turno
 import com.example.rentail_conteo.model.Usuario
 import com.example.rentail_conteo.ui.components.BarraSuperior
@@ -56,12 +57,14 @@ fun HorarioScreen(
                     modifier = Modifier.padding(top = Dimens.espacioMedio)
                 )
             }
-            item {
-                InterruptorConTexto(
-                    texto = "Ver solo mis turnos",
-                    activado = uiState.soloMisTurnos,
-                    onCambio = viewModel::onSoloMisTurnos
-                )
+            if (usuario.rolId == Rol.TRABAJADOR) {
+                item {
+                    InterruptorConTexto(
+                        texto = "Ver solo mis turnos",
+                        activado = uiState.soloMisTurnos,
+                        onCambio = viewModel::onSoloMisTurnos
+                    )
+                }
             }
             if (uiState.turnos.isEmpty()) {
                 item {

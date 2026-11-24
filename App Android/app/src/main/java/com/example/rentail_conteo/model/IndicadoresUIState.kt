@@ -19,7 +19,6 @@ data class IndicadoresUIState(
     val compradores: Int = 0,
     val porRango: List<FilaIndicador> = emptyList(),
     val porAcceso: List<FilaIndicador> = emptyList(),
-    val porCompania: List<FilaIndicador> = emptyList(),
     val accesoMasDePaso: FilaIndicador? = null,
     val perfilQueMasCompra: String? = null,
     val perfilQueNoCompra: String? = null,

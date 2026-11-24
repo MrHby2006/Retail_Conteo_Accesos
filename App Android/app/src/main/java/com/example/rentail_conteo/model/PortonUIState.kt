@@ -5,7 +5,6 @@ data class PortonUIState(
     val rangos: List<Opcion> = emptyList(),
     val alturas: List<Opcion> = emptyList(),
     val colores: List<Opcion> = emptyList(),
-    val companias: List<Opcion> = emptyList(),
     val turnoHoy: String? = null,
     val accesoElegido: AccesoItem? = null,
     val accesoFijo: Boolean = false,
@@ -13,7 +12,6 @@ data class PortonUIState(
     val altura: Opcion? = null,
     val colorRopa: Opcion? = null,
     val colorRopaAbajo: Opcion? = null,
-    val compania: Opcion? = null,
     val detalle: String = "",
     val registradosHoy: Int = 0,
     val guardando: Boolean = false,
@@ -22,7 +20,6 @@ data class PortonUIState(
     val errorAltura: String? = null,
     val errorColor: String? = null,
     val errorColorAbajo: String? = null,
-    val errorCompania: String? = null,
     val errorDetalle: String? = null,
     val mensaje: String? = null
 )

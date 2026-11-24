@@ -17,6 +17,9 @@ data class Turno(
     fun yaTermino(): Boolean =
         Fechas.aMillisLocal("$fecha ${Franjas.horaFin(franja)}") <= System.currentTimeMillis()
 
+    fun yaEmpezo(): Boolean =
+        Fechas.aMillisLocal("$fecha ${Franjas.horaInicio(franja)}") <= System.currentTimeMillis()
+
     val esBorrador: Boolean get() = estado == ESTADO_BORRADOR
 
     companion object {
@@ -39,6 +42,8 @@ object Franjas {
 
     fun horario(franja: String): String = if (franja == "Mañana") "10:00 a 15:30" else "15:30 a 21:00"
 
+    fun horaInicio(franja: String): String = horario(franja).substringBefore(" a ")
+
     fun horaFin(franja: String): String = horario(franja).substringAfter(" a ")
 
     fun siguiente(franja: String): String? = if (franja == "Mañana") "Tarde" else null
@@ -54,11 +59,25 @@ data class TurnosUIState(
     val puestos: List<String> = emptyList(),
     val puestoElegido: String? = null,
     val turnosDelDia: List<Turno> = emptyList(),
-    val borradoresSemana: Int = 0,
+    val turnosSemana: List<Turno> = emptyList(),
     val turnoEnEdicion: Turno? = null,
     val errorTrabajador: String? = null,
     val errorFranja: String? = null,
     val errorPuesto: String? = null,
     val pidiendoPublicar: Boolean = false,
     val mensaje: String? = null
-)
+) {
+    val borradoresSemana: Int get() = turnosSemana.count { it.esBorrador }
+
+    val diasCompletos: Int get() = diasSemana.count { faltaEn(it).isEmpty() }
+
+    val semanaCompleta: Boolean get() = diasSemana.isNotEmpty() && diasCompletos == diasSemana.size
+
+    fun faltaEn(dia: String): List<String> = Franjas.todas.flatMap { franja ->
+        val turnos = turnosSemana.filter { it.fecha == dia && it.franja == franja }
+        buildList {
+            if (turnos.none { it.puesto == Turno.PUESTO_CAJA }) add("caja en la ${franja.lowercase()}")
+            if (turnos.none { it.puesto != Turno.PUESTO_CAJA }) add("una puerta en la ${franja.lowercase()}")
+        }
+    }
+}

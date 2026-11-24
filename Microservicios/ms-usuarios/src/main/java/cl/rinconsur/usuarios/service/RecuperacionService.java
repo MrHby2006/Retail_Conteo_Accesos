@@ -39,10 +39,6 @@ public class RecuperacionService {
     @Transactional
     public CodigoEnviadoDTO enviarCodigo(RecuperarDTO dto) {
         Usuario user = usuarioServ.buscarPorRut(dto.getRut());
-        if (user.getCorreoPersonal() == null) {
-            throw new RuntimeException("No tienes un correo personal registrado. Pide al administrador que lo agregue");
-        }
-
         for (CodigoRecuperacion anterior : codigoRep.findByUsuarioIdAndUsadoFalse(user.getId())) {
             anterior.setUsado(true);
             codigoRep.save(anterior);
@@ -57,10 +53,10 @@ public class RecuperacionService {
         nuevo.setUsado(false);
         codigoRep.save(nuevo);
 
-        boolean enviado = usuarioServ.enviar("CODIGO_RECUPERACION", user,
+        boolean enviado = usuarioServ.enviarAEmpresa("CODIGO_RECUPERACION", user,
                 "Código para recuperar tu contraseña: " + codigo,
                 PlantillasCorreo.codigoRecuperacion(user.getNombres(), codigo, MINUTOS_VALIDEZ));
-        return new CodigoEnviadoDTO(ocultar(user.getCorreoPersonal()), enviado, MINUTOS_VALIDEZ);
+        return new CodigoEnviadoDTO(ocultar(user.getCorreo()), enviado, MINUTOS_VALIDEZ);
     }
 
     @Transactional
@@ -75,7 +71,7 @@ public class RecuperacionService {
         user.setPasswordHash(encoder.encode(dto.getNueva()));
         user.setDebeCambiarContrasena(false);
         usuarioRep.save(user);
-        usuarioServ.enviar("CONTRASENA_CAMBIADA", user, "Tu contraseña de FlujoSur cambió",
+        usuarioServ.enviarAEmpresa("CONTRASENA_CAMBIADA", user, "Tu contraseña de FlujoSur cambió",
                 PlantillasCorreo.contrasenaCambiada(user.getNombres()));
     }
 

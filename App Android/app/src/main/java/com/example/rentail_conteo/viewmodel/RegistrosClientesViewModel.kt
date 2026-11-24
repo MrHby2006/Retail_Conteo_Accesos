@@ -10,10 +10,10 @@ import com.example.rentail_conteo.data.AccesoRepository
 import com.example.rentail_conteo.data.CompraRepository
 import com.example.rentail_conteo.data.ConvertidorImagen
 import com.example.rentail_conteo.data.remote.CompraRequest
-import com.example.rentail_conteo.model.AccesoItem
 import com.example.rentail_conteo.model.Opcion
 import com.example.rentail_conteo.model.PersonaIngreso
 import com.example.rentail_conteo.model.RegistrosClientesUIState
+import com.example.rentail_conteo.util.Fechas
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,12 +31,10 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
         viewModelScope.launch {
             try {
                 val catalogos = accesoRepositorio.catalogos()
-                val accesos = accesoRepositorio.listar()
                 _uiState.update {
                     it.copy(
                         rangos = catalogos.rangos.map { o -> Opcion(o.id, o.nombre) },
-                        colores = catalogos.colores.map { o -> Opcion(o.id, o.nombre) },
-                        accesosDisponibles = accesos
+                        colores = catalogos.colores.map { o -> Opcion(o.id, o.nombre) }
                     )
                 }
             } catch (e: Exception) {
@@ -61,21 +59,6 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
         buscar()
     }
 
-    fun onFiltroAcceso(acceso: AccesoItem?) {
-        _uiState.update { it.copy(filtroAcceso = if (it.filtroAcceso?.id == acceso?.id) null else acceso) }
-        buscar()
-    }
-
-    fun onFiltroFecha(fecha: String?) {
-        _uiState.update { it.copy(filtroFecha = if (it.filtroFecha == fecha) null else fecha) }
-        buscar()
-    }
-
-    fun onFiltroFranja(franja: String?) {
-        _uiState.update { it.copy(filtroFranja = if (it.filtroFranja == franja) null else franja) }
-        buscar()
-    }
-
     private fun buscar() {
         val estado = _uiState.value
         _uiState.update { it.copy(cargando = true) }
@@ -85,9 +68,7 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
                     idRango = estado.filtroRango?.id,
                     idColorSuperior = estado.filtroColor?.id,
                     idColorInferior = estado.filtroColorAbajo?.id,
-                    idAcceso = estado.filtroAcceso?.id?.toLong(),
-                    fecha = estado.filtroFecha,
-                    franja = estado.filtroFranja
+                    fecha = Fechas.hoy()
                 )
                 _uiState.update { it.copy(candidatos = candidatos, cargando = false) }
             } catch (e: Exception) {

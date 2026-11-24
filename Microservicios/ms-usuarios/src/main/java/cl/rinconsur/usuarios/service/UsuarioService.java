@@ -159,7 +159,6 @@ public class UsuarioService {
 
     public UsuarioDTO actualizarPerfil(Long id, PerfilDTO dto) {
         Usuario user = buscar(id);
-        user.setCorreoPersonal(dto.getCorreoPersonal() == null ? null : dto.getCorreoPersonal().trim().toLowerCase());
         user.setTelefono(dto.getTelefono());
         user.setFechaNacimiento(dto.getFechaNacimiento());
         if (dto.getFotoUrl() != null) {
@@ -179,7 +178,7 @@ public class UsuarioService {
         user.setPasswordHash(encoder.encode(dto.getNueva()));
         user.setDebeCambiarContrasena(false);
         usuarioRep.save(user);
-        enviar("CONTRASENA_CAMBIADA", user, "Tu contraseña de FlujoSur cambió",
+        enviarAEmpresa("CONTRASENA_CAMBIADA", user, "Tu contraseña de FlujoSur cambió",
                 PlantillasCorreo.contrasenaCambiada(user.getNombres()));
         return toDTO(user);
     }
@@ -219,6 +218,10 @@ public class UsuarioService {
             return false;
         }
         return notificacionCli.enviarCorreo(new CorreoDTO(tipo, user.getId(), user.getCorreoPersonal(), asunto, mensaje));
+    }
+
+    public boolean enviarAEmpresa(String tipo, Usuario user, String asunto, String mensaje) {
+        return notificacionCli.enviarCorreo(new CorreoDTO(tipo, user.getId(), user.getCorreo(), asunto, mensaje));
     }
 
     public UsuarioDTO toDTO(Usuario u) {

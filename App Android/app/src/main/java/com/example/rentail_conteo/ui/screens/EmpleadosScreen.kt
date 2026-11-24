@@ -59,18 +59,18 @@ fun EmpleadosScreen(
     }
 
     uiState.cuentaCreada?.let { cuenta ->
-        val estadoCorreo = when (cuenta.correoEnviado) {
-            null -> "Enviando los datos a ${cuenta.correoPersonal}..."
-            true -> "Se enviaron los datos a ${cuenta.correoPersonal}."
-            false -> "No se pudo enviar el correo a ${cuenta.correoPersonal}. Entrégale estos datos en persona."
+        val estadoCorreo = if (cuenta.correoEnviado) {
+            "La contraseña temporal se envió a ${cuenta.correoPersonal}. Solo esa persona puede verla."
+        } else {
+            "No se pudo enviar el correo a ${cuenta.correoPersonal}. Entrégale en persona esta contraseña temporal: " +
+                    cuenta.contrasenaTemporal
         }
         AlertDialog(
             onDismissRequest = viewModel::onCerrarCuentaCreada,
             title = { Text(cuenta.titulo) },
             text = {
                 Text(
-                    "${cuenta.nombre}\n\nCorreo de empresa: ${cuenta.correoEmpresa}\n" +
-                            "Contraseña temporal: ${cuenta.contrasenaTemporal}\n\n" +
+                    "${cuenta.nombre}\n\nCorreo de empresa: ${cuenta.correoEmpresa}\n\n" +
                             "Ingresa con su RUT y al entrar deberá cambiar la contraseña.\n\n$estadoCorreo"
                 )
             },
@@ -91,14 +91,14 @@ fun EmpleadosScreen(
     uiState.porClaveNueva?.let { empleado ->
         AlertDialog(
             onDismissRequest = viewModel::onCancelarClaveNueva,
-            title = { Text("Contraseña temporal nueva") },
+            title = { Text("Recuperación de clave") },
             text = {
                 Text(
-                    "Se creará una contraseña temporal para ${empleado.nombre} y se enviará a " +
+                    "Se enviará una contraseña temporal a ${empleado.nombre}, al correo " +
                             "${empleado.correoPersonal}. Su contraseña actual dejará de funcionar."
                 )
             },
-            confirmButton = { TextButton(onClick = viewModel::onConfirmarClaveNueva) { Text("Generar") } },
+            confirmButton = { TextButton(onClick = viewModel::onConfirmarClaveNueva) { Text("Enviar") } },
             dismissButton = { TextButton(onClick = viewModel::onCancelarClaveNueva) { Text("Cancelar") } }
         )
     }
@@ -225,7 +225,7 @@ private fun FormularioEmpleado(uiState: EmpleadosUIState, viewModel: EmpleadosVi
             label = { Text("Correo personal") },
             leadingIcon = { Icon(painterResource(R.drawable.ic_correo), contentDescription = null) },
             isError = uiState.errorCorreoPersonal != null,
-            supportingText = { Text(uiState.errorCorreoPersonal ?: "Aquí le llegarán sus datos y horarios") },
+            supportingText = { Text(uiState.errorCorreoPersonal ?: "Aquí le llegarán su contraseña temporal y la recuperación de clave") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             modifier = Modifier.fillMaxWidth()
@@ -280,7 +280,7 @@ private fun TarjetaEmpleado(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextButton(onClick = onEditar) { Text("Editar") }
-                TextButton(onClick = onClaveNueva) { Text("Nueva clave") }
+                TextButton(onClick = onClaveNueva) { Text("Recuperación clave") }
                 if (empleado.rolId != Rol.ADMINISTRADOR) {
                     TextButton(onClick = onDesactivar) { Text("Desactivar") }
                 }

@@ -11,11 +11,6 @@ object Fechas {
 
     fun hoy(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
-    fun ayer(): String {
-        val calendario = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -1) }
-        return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendario.time)
-    }
-
     fun manana(): String {
         val calendario = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, 1) }
         return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendario.time)
@@ -48,6 +43,11 @@ object Fechas {
         val hoy = hoy()
         val anios = hoy.take(4).toInt() - fechaNacimiento.take(4).toInt()
         return if (hoy.drop(5) < fechaNacimiento.drop(5)) anios - 1 else anios
+    }
+
+    fun haceAnios(anios: Int): String {
+        val calendario = Calendar.getInstance().apply { add(Calendar.YEAR, -anios) }
+        return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendario.time)
     }
 
     fun legible(fecha: String): String = "${fecha.substring(8, 10)}/${fecha.substring(5, 7)}/${fecha.take(4)}"

@@ -26,7 +26,7 @@ public class CodigoRecuperacion {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_codigo")
-    @Schema(descripcion = "Id único del código", example = "2")
+    @Schema(description = "Id único del código", example = "2")
     private Long id;
 
     @ManyToOne

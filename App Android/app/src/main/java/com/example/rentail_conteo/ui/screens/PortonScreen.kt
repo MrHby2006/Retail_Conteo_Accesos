@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -16,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,28 +60,39 @@ fun PortonScreen(
         topBar = {
             BarraSuperior(titulo = "Puerta · ${observador.primerNombre()}", onCerrarSesion = onCerrarSesion, onVolver = onVolver)
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            Surface(shadowElevation = Dimens.elevacionBoton) {
+                Boton(
+                    texto = if (uiState.guardando) "Guardando..." else "Registrar ingreso",
+                    onClick = { viewModel.onRegistrar(observador.id) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = Dimens.espacioPantalla, vertical = Dimens.espacioChico)
+                )
+            }
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(Dimens.espacioPantalla),
-            verticalArrangement = Arrangement.spacedBy(Dimens.espacioMedio)
+                .padding(horizontal = Dimens.espacioPantalla, vertical = Dimens.espacioChico),
+            verticalArrangement = Arrangement.spacedBy(Dimens.espacioMini)
         ) {
-            Text(
-                "Tu turno de hoy: ${uiState.turnoHoy ?: "sin turno asignado"}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-
             val accesoDelTurno = uiState.accesoElegido
             if (uiState.accesoFijo && accesoDelTurno != null) {
                 Text(
-                    "Estás en ${accesoDelTurno.codigo} · ${accesoDelTurno.nombre}",
+                    "${accesoDelTurno.codigo} · ${accesoDelTurno.nombre}",
                     style = MaterialTheme.typography.titleMedium
                 )
             } else {
+                Text(
+                    "Tu turno de hoy: ${uiState.turnoHoy ?: "sin turno asignado"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
                 SeleccionChips(
                     titulo = "¿En qué acceso estás?",
                     opciones = uiState.accesos,
@@ -92,19 +105,19 @@ fun PortonScreen(
 
             uiState.accesoElegido?.let { acceso ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Registrados hoy en ${acceso.codigo}: ", style = MaterialTheme.typography.bodyLarge)
+                    Text("Registrados hoy en ${acceso.codigo}: ", style = MaterialTheme.typography.bodyMedium)
                     AnimatedContent(
                         targetState = uiState.registradosHoy,
                         transitionSpec = { slideInVertically { it } togetherWith slideOutVertically { -it } },
                         label = "contador"
                     ) { total ->
-                        Text("$total", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("$total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
             SeleccionChips(
-                titulo = "Rango de edad (a la vista)",
+                titulo = "Edad (a la vista)",
                 opciones = uiState.rangos,
                 seleccionada = uiState.rangoEtario,
                 onSeleccionar = viewModel::onRangoElegido,
@@ -120,7 +133,7 @@ fun PortonScreen(
                 error = uiState.errorAltura
             )
             SeleccionChips(
-                titulo = "Color de la ropa (parte de arriba)",
+                titulo = "Color de arriba",
                 opciones = uiState.colores,
                 seleccionada = uiState.colorRopa,
                 onSeleccionar = viewModel::onColorElegido,
@@ -128,21 +141,12 @@ fun PortonScreen(
                 error = uiState.errorColor
             )
             SeleccionChips(
-                titulo = "Color de la ropa (parte de abajo)",
+                titulo = "Color de abajo",
                 opciones = uiState.colores,
                 seleccionada = uiState.colorRopaAbajo,
                 onSeleccionar = viewModel::onColorAbajoElegido,
                 textoDe = { it.nombre },
                 error = uiState.errorColorAbajo
-            )
-
-            SeleccionChips(
-                titulo = "¿Viene sola o acompañada?",
-                opciones = uiState.companias,
-                seleccionada = uiState.compania,
-                onSeleccionar = viewModel::onCompaniaElegida,
-                textoDe = { it.nombre },
-                error = uiState.errorCompania
             )
 
             CampoReferencia(
@@ -151,12 +155,6 @@ fun PortonScreen(
                 etiqueta = "Detalle para reconocerlo (opcional)",
                 icono = R.drawable.ic_persona,
                 error = uiState.errorDetalle
-            )
-
-            Boton(
-                texto = if (uiState.guardando) "Guardando..." else "Registrar ingreso",
-                onClick = { viewModel.onRegistrar(observador.id) },
-                modifier = Modifier.fillMaxWidth()
             )
         }
     }

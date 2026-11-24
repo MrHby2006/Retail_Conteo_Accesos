@@ -10,13 +10,13 @@ data class PersonaIngreso(
     val altura: String,
     val colorRopa: String,
     val colorRopaAbajo: String,
-    val compania: String,
+    val compania: String = "",
     val detalle: String = "",
     val compro: Boolean = false
 ) {
     fun resumen(): String =
         "$rangoEtario · Altura ${altura.lowercase()} · " +
-                "Arriba ${colorRopa.lowercase()}, abajo ${colorRopaAbajo.lowercase()} · $compania"
+                "Arriba ${colorRopa.lowercase()}, abajo ${colorRopaAbajo.lowercase()}"
 }
 
 data class Opcion(

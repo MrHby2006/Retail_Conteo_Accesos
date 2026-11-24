@@ -29,8 +29,6 @@ interface AccesoApi {
         @Query("idRango") idRango: Long?,
         @Query("idColorSuperior") idColorSuperior: Long?,
         @Query("idColorInferior") idColorInferior: Long?,
-        @Query("idAcceso") idAcceso: Long?,
-        @Query("fecha") fecha: String?,
-        @Query("franja") franja: String?
+        @Query("fecha") fecha: String?
     ): List<IngresoResponse>
 }

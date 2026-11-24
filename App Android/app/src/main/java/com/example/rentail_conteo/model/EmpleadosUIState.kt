@@ -6,7 +6,7 @@ data class CuentaCreada(
     val correoEmpresa: String,
     val contrasenaTemporal: String,
     val correoPersonal: String,
-    val correoEnviado: Boolean? = null
+    val correoEnviado: Boolean
 )
 
 data class EmpleadosUIState(

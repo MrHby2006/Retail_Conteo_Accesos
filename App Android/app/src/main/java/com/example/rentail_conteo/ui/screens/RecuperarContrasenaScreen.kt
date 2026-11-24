@@ -90,7 +90,7 @@ fun RecuperarContrasenaScreen(
 private fun PasoPedirCodigo(uiState: RecuperarContrasenaUIState, viewModel: RecuperarContrasenaViewModel) {
     Text("¿Olvidaste tu contraseña?", style = MaterialTheme.typography.titleLarge)
     Text(
-        "Escribe tu RUT. Te enviaremos un código de 6 números a tu correo personal.",
+        "Escribe tu RUT. Te enviaremos un código de 6 números a tu correo de la empresa.",
         style = MaterialTheme.typography.bodyMedium
     )
     OutlinedTextField(

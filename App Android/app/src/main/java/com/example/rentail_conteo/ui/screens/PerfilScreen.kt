@@ -38,6 +38,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
@@ -225,6 +226,10 @@ private fun DatosFijos(usuario: Usuario) {
             Text("RUT: ${usuario.rutFormateado()}", style = MaterialTheme.typography.bodySmall)
             Text("Correo de la empresa: ${usuario.correo}", style = MaterialTheme.typography.bodySmall)
             Text(
+                "Correo personal: ${usuario.correoPersonal ?: "sin registrar, pídelo al administrador"}",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
                 "Estos datos solo los puede cambiar el administrador.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary
@@ -237,17 +242,6 @@ private fun DatosFijos(usuario: Usuario) {
 private fun DatosPersonales(uiState: PerfilUIState, viewModel: PerfilViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.espacioChico)) {
         Text("Mis datos", style = MaterialTheme.typography.titleMedium)
-        OutlinedTextField(
-            value = uiState.correoPersonal,
-            onValueChange = viewModel::onCorreoCambia,
-            label = { Text("Correo personal") },
-            leadingIcon = { Icon(painterResource(R.drawable.ic_correo), contentDescription = null) },
-            isError = uiState.errorCorreo != null,
-            supportingText = { Text(uiState.errorCorreo ?: "Aquí te llegan los horarios y el código para recuperar la contraseña") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            modifier = Modifier.fillMaxWidth()
-        )
         OutlinedButton(onClick = viewModel::onAbrirCalendario, modifier = Modifier.fillMaxWidth()) {
             Icon(painterResource(R.drawable.ic_campana), contentDescription = null)
             Spacer(Modifier.width(Dimens.espacioChico))
@@ -292,9 +286,16 @@ private fun CampoClave(etiqueta: String, valor: String, error: String?, onCambia
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CalendarioNacimiento(fechaActual: String?, onElegir: (Long?) -> Unit, onCerrar: () -> Unit) {
+    val ultimaFecha = Fechas.haceAnios(PerfilViewModel.EDAD_MINIMA)
+    val ultimoAnio = ultimaFecha.take(4).toInt()
     val estado = rememberDatePickerState(
         initialSelectedDateMillis = fechaActual?.let { Fechas.aMillisUtc(it) },
-        yearRange = (Fechas.hoy().take(4).toInt() - PerfilViewModel.EDAD_MAXIMA)..Fechas.hoy().take(4).toInt()
+        initialDisplayedMonthMillis = Fechas.aMillisUtc(fechaActual ?: ultimaFecha),
+        yearRange = (Fechas.hoy().take(4).toInt() - PerfilViewModel.EDAD_MAXIMA)..ultimoAnio,
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long) = Fechas.desdeMillisUtc(utcTimeMillis) <= ultimaFecha
+            override fun isSelectableYear(year: Int) = year <= ultimoAnio
+        }
     )
     DatePickerDialog(
         onDismissRequest = onCerrar,
