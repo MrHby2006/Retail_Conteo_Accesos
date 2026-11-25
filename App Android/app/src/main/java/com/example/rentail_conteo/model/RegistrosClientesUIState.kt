@@ -4,8 +4,10 @@ import android.graphics.Bitmap
 
 data class RegistrosClientesUIState(
     val rangos: List<Opcion> = emptyList(),
+    val alturas: List<Opcion> = emptyList(),
     val colores: List<Opcion> = emptyList(),
     val filtroRango: Opcion? = null,
+    val filtroAltura: Opcion? = null,
     val filtroColor: Opcion? = null,
     val filtroColorAbajo: Opcion? = null,
     val candidatos: List<PersonaIngreso> = emptyList(),

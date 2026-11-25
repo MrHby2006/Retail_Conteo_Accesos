@@ -1,5 +1,6 @@
 package com.example.rentail_conteo.data
 
+import com.example.rentail_conteo.data.remote.CopiaDiaRequest
 import com.example.rentail_conteo.data.remote.FranjaResponse
 import com.example.rentail_conteo.data.remote.PublicacionRequest
 import com.example.rentail_conteo.data.remote.PublicacionResponse
@@ -42,6 +43,9 @@ class TurnoRepository(
     suspend fun editar(id: Long, datos: TurnoRequest): Turno = llamarApi { api.editar(id, datos) }.aTurno()
 
     suspend fun eliminar(id: Long): String = llamarApi { api.eliminar(id) }.string()
+
+    suspend fun copiarDia(origen: String, desde: String, hasta: String): Int =
+        llamarApi { api.copiarDia(CopiaDiaRequest(origen, desde, hasta)) }
 
     suspend fun publicar(desde: String, hasta: String): PublicacionResponse =
         llamarApi { api.publicar(PublicacionRequest(desde, hasta)) }

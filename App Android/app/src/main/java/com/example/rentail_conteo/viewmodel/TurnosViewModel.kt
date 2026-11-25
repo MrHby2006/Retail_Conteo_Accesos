@@ -105,6 +105,22 @@ class TurnosViewModel : ViewModel() {
         }
     }
 
+    fun onCopiarDia() {
+        val estado = _uiState.value
+        if (!estado.puedeCopiarDia || estado.copiando) return
+        _uiState.update { it.copy(copiando = true) }
+        viewModelScope.launch {
+            try {
+                val copiados = turnoRepositorio.copiarDia(estado.diaElegido, estado.diasSemana.first(), estado.diasSemana.last())
+                _uiState.update { it.copy(mensaje = "Se copiaron $copiados turnos a ${estado.diasVacios.size} día(s)") }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(mensaje = e.message) }
+            }
+            _uiState.update { it.copy(copiando = false) }
+            recargar()
+        }
+    }
+
     fun onPedirPublicar() {
         if (!_uiState.value.semanaCompleta) {
             _uiState.update { it.copy(mensaje = "Completa todos los días de la semana antes de publicar") }

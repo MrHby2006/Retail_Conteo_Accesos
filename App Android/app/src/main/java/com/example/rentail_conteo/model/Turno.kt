@@ -65,19 +65,26 @@ data class TurnosUIState(
     val errorFranja: String? = null,
     val errorPuesto: String? = null,
     val pidiendoPublicar: Boolean = false,
+    val copiando: Boolean = false,
     val mensaje: String? = null
 ) {
     val borradoresSemana: Int get() = turnosSemana.count { it.esBorrador }
 
-    val diasCompletos: Int get() = diasSemana.count { faltaEn(it).isEmpty() }
+    val diasCompletos: Int get() = if (puestos.isEmpty()) 0 else diasSemana.count { faltaEn(it).isEmpty() }
 
     val semanaCompleta: Boolean get() = diasSemana.isNotEmpty() && diasCompletos == diasSemana.size
+
+    val diasVacios: List<String> get() = diasSemana.filter { dia -> turnosSemana.none { it.fecha == dia } }
+
+    val puedeCopiarDia: Boolean
+        get() = esProximaSemana && puestos.isNotEmpty() && faltaEn(diaElegido).isEmpty() && diasVacios.isNotEmpty()
 
     fun faltaEn(dia: String): List<String> = Franjas.todas.flatMap { franja ->
         val turnos = turnosSemana.filter { it.fecha == dia && it.franja == franja }
         buildList {
-            if (turnos.none { it.puesto == Turno.PUESTO_CAJA }) add("caja en la ${franja.lowercase()}")
-            if (turnos.none { it.puesto != Turno.PUESTO_CAJA }) add("una puerta en la ${franja.lowercase()}")
+            val faltan = puestos.filter { puesto -> turnos.none { it.puesto == puesto } }
+                .map { if (it == Turno.PUESTO_CAJA) "caja" else it }
+            if (faltan.isNotEmpty()) add("${faltan.joinToString(", ")} en la ${franja.lowercase()}")
         }
     }
 }

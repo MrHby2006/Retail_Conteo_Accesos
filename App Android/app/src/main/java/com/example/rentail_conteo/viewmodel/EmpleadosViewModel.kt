@@ -192,41 +192,6 @@ class EmpleadosViewModel : ViewModel() {
         }
     }
 
-    fun onPedirClaveNueva(empleado: Usuario) {
-        if (empleado.correoPersonal.isNullOrBlank()) {
-            _uiState.update { it.copy(mensaje = "Primero agrega el correo personal de ${empleado.primerNombre()} con Editar") }
-            return
-        }
-        _uiState.update { it.copy(porClaveNueva = empleado) }
-    }
-
-    fun onCancelarClaveNueva() = _uiState.update { it.copy(porClaveNueva = null) }
-
-    fun onConfirmarClaveNueva() {
-        val empleado = _uiState.value.porClaveNueva ?: return
-        _uiState.update { it.copy(porClaveNueva = null) }
-        viewModelScope.launch {
-            try {
-                val cuenta = repositorio.contrasenaTemporal(empleado.id)
-                _uiState.update {
-                    it.copy(
-                        cuentaCreada = CuentaCreada(
-                            titulo = "Recuperación de clave",
-                            nombre = empleado.nombre,
-                            correoEmpresa = empleado.correo,
-                            contrasenaTemporal = cuenta.contrasenaTemporal,
-                            correoPersonal = empleado.correoPersonal ?: "",
-                            correoEnviado = cuenta.correoEnviado
-                        )
-                    )
-                }
-                cargarEmpleados()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(mensaje = e.message) }
-            }
-        }
-    }
-
     fun onPedirDesactivar(empleado: Usuario, idAdmin: Long) {
         val error = when {
             empleado.id == idAdmin -> "No puedes desactivar tu propia cuenta"

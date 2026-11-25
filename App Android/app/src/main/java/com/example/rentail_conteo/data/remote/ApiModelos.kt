@@ -117,6 +117,12 @@ data class TurnoResponse(
     val cambioPendiente: Boolean
 )
 
+data class CopiaDiaRequest(
+    val origen: String,
+    val desde: String,
+    val hasta: String
+)
+
 data class PublicacionRequest(
     val desde: String,
     val hasta: String

@@ -45,9 +45,6 @@ class UsuarioRepository(
     suspend fun cambiarContrasena(id: Long, actual: String, nueva: String): Usuario =
         llamarApi { api.cambiarContrasena(id, CambioContrasenaRequest(actual, nueva)) }.aUsuario()
 
-    suspend fun contrasenaTemporal(id: Long): CuentaCreadaResponse =
-        llamarApi { api.contrasenaTemporal(id) }
-
     suspend fun recuperar(rut: String): CodigoEnviadoResponse =
         llamarApi { api.recuperar(RecuperarRequest(rut)) }
 

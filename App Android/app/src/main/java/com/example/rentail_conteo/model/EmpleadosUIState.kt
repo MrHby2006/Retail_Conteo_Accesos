@@ -31,6 +31,5 @@ data class EmpleadosUIState(
     val errorCorreoPersonal: String? = null,
     val cuentaCreada: CuentaCreada? = null,
     val porDesactivar: Usuario? = null,
-    val porClaveNueva: Usuario? = null,
     val mensaje: String? = null
 )
