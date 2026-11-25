@@ -34,6 +34,7 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
                 _uiState.update {
                     it.copy(
                         rangos = catalogos.rangos.map { o -> Opcion(o.id, o.nombre) },
+                        alturas = catalogos.alturas.map { o -> Opcion(o.id, o.nombre) },
                         colores = catalogos.colores.map { o -> Opcion(o.id, o.nombre) }
                     )
                 }
@@ -46,6 +47,11 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
 
     fun onFiltroRango(valor: Opcion) {
         _uiState.update { it.copy(filtroRango = if (it.filtroRango == valor) null else valor) }
+        buscar()
+    }
+
+    fun onFiltroAltura(valor: Opcion) {
+        _uiState.update { it.copy(filtroAltura = if (it.filtroAltura == valor) null else valor) }
         buscar()
     }
 
@@ -66,6 +72,7 @@ class RegistrosClientesViewModel(application: Application) : AndroidViewModel(ap
             try {
                 val candidatos = accesoRepositorio.candidatos(
                     idRango = estado.filtroRango?.id,
+                    idAltura = estado.filtroAltura?.id,
                     idColorSuperior = estado.filtroColor?.id,
                     idColorInferior = estado.filtroColorAbajo?.id,
                     fecha = Fechas.hoy()

@@ -181,6 +181,14 @@ fun TurnosScreen(
 
             if (uiState.esProximaSemana && enEdicion == null) {
                 AvanceSemana(uiState)
+                if (uiState.puedeCopiarDia) {
+                    Boton(
+                        texto = if (uiState.copiando) "Copiando..."
+                        else "Copiar ${Fechas.diaCorto(uiState.diaElegido)} a los días vacíos (${uiState.diasVacios.size})",
+                        onClick = viewModel::onCopiarDia,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
                 if (uiState.semanaCompleta) {
                     Boton(
                         texto = "Publicar semana (${uiState.borradoresSemana} en borrador)",
@@ -228,11 +236,11 @@ private fun AvanceSemana(uiState: TurnosUIState) {
                 val falta = uiState.faltaEn(uiState.diaElegido)
                 Text(
                     if (falta.isEmpty()) "${Fechas.diaCorto(uiState.diaElegido)} está completo. Sigue con los días sin ✓."
-                    else "En ${Fechas.diaCorto(uiState.diaElegido)} falta: ${falta.joinToString(", ")}.",
+                    else "En ${Fechas.diaCorto(uiState.diaElegido)} falta: ${falta.joinToString("; ")}.",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    "Podrás publicar cuando cada día tenga al menos una caja y una puerta en la mañana y en la tarde.",
+                    "Cada día necesita, en la mañana y en la tarde, al menos 1 persona en caja y 1 en cada puerta.",
                     style = MaterialTheme.typography.bodySmall
                 )
             }

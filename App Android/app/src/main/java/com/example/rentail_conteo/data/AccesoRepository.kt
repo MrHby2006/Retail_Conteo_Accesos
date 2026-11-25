@@ -30,9 +30,9 @@ class AccesoRepository(
         llamarApi { api.contar(idAcceso, fecha) }
 
     suspend fun candidatos(
-        idRango: Long?, idColorSuperior: Long?, idColorInferior: Long?,
+        idRango: Long?, idAltura: Long?, idColorSuperior: Long?, idColorInferior: Long?,
         fecha: String?
     ): List<PersonaIngreso> =
-        llamarApi { api.candidatos(idRango, idColorSuperior, idColorInferior, fecha) }
+        llamarApi { api.candidatos(idRango, idAltura, idColorSuperior, idColorInferior, fecha) }
             .map { it.aPersona() }
 }

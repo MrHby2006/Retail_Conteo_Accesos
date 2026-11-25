@@ -47,14 +47,14 @@ public class RecuperacionService {
         String codigo = String.valueOf(aleatorio.nextInt(900000) + 100000);
         CodigoRecuperacion nuevo = new CodigoRecuperacion();
         nuevo.setUsuario(user);
-        nuevo.setCodigo(codigo);
+        nuevo.setCodigo(encoder.encode(codigo));
         nuevo.setFechaCreacion(LocalDateTime.now());
         nuevo.setFechaExpira(LocalDateTime.now().plusMinutes(MINUTOS_VALIDEZ));
         nuevo.setUsado(false);
         codigoRep.save(nuevo);
 
         boolean enviado = usuarioServ.enviarAEmpresa("CODIGO_RECUPERACION", user,
-                "Código para recuperar tu contraseña: " + codigo,
+                "Código para recuperar tu contraseña",
                 PlantillasCorreo.codigoRecuperacion(user.getNombres(), codigo, MINUTOS_VALIDEZ));
         return new CodigoEnviadoDTO(ocultar(user.getCorreo()), enviado, MINUTOS_VALIDEZ);
     }
@@ -62,8 +62,12 @@ public class RecuperacionService {
     @Transactional
     public void restablecer(RestablecerDTO dto) {
         Usuario user = usuarioServ.buscarPorRut(dto.getRut());
+        if (dto.getCodigo() == null) {
+            throw new RuntimeException("Falta el código");
+        }
         CodigoRecuperacion codigo = codigoRep
-                .findFirstByUsuarioIdAndCodigoAndUsadoFalseAndFechaExpiraAfter(user.getId(), dto.getCodigo(), LocalDateTime.now())
+                .findFirstByUsuarioIdAndUsadoFalseAndFechaExpiraAfter(user.getId(), LocalDateTime.now())
+                .filter(c -> encoder.matches(dto.getCodigo(), c.getCodigo()))
                 .orElseThrow(() -> new RuntimeException("Código incorrecto o vencido. Puedes pedir uno nuevo"));
         codigo.setUsado(true);
         codigoRep.save(codigo);

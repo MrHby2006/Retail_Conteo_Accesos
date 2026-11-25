@@ -13,6 +13,7 @@ import cl.rinconsur.turnos.client.AccesoClient;
 import cl.rinconsur.turnos.client.NotificacionClient;
 import cl.rinconsur.turnos.client.UsuarioClient;
 import cl.rinconsur.turnos.dto.AccesoDTO;
+import cl.rinconsur.turnos.dto.CopiaDiaDTO;
 import cl.rinconsur.turnos.dto.CorreoMasivoDTO;
 import cl.rinconsur.turnos.dto.FranjaDTO;
 import cl.rinconsur.turnos.dto.PublicacionResultadoDTO;
@@ -144,6 +145,25 @@ public class TurnoService {
 
     public void eliminar(Long id) {
         turnoRep.delete(buscar(id));
+    }
+
+    public int copiarDia(CopiaDiaDTO dto) {
+        if (dto.getOrigen() == null || dto.getDesde() == null || dto.getHasta() == null) {
+            throw new RuntimeException("Faltan las fechas para copiar el día");
+        }
+        List<Turno> delDia = turnoRep.findByFechaOrderByFranjaIdAscPuestoIdAsc(dto.getOrigen());
+        EstadoTurno borrador = estado(BORRADOR);
+        List<Turno> copias = new ArrayList<>();
+        for (LocalDate fecha = dto.getDesde(); !fecha.isAfter(dto.getHasta()); fecha = fecha.plusDays(1)) {
+            if (!turnoRep.findByFechaOrderByFranjaIdAscPuestoIdAsc(fecha).isEmpty()) {
+                continue;
+            }
+            for (Turno t : delDia) {
+                copias.add(new Turno(null, t.getIdUsuario(), t.getIdSupervisor(), fecha, t.getFranja(), t.getPuesto(),
+                        borrador, LocalDateTime.now(), null));
+            }
+        }
+        return turnoRep.saveAll(copias).size();
     }
 
     public PublicacionResultadoDTO publicar(LocalDate desde, LocalDate hasta) {

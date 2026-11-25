@@ -14,6 +14,6 @@ public interface CodigoRecuperacionRepository extends JpaRepository<CodigoRecupe
 
     List<CodigoRecuperacion> findByUsuarioIdAndUsadoFalse(Long idUsuario);
 
-    Optional<CodigoRecuperacion> findFirstByUsuarioIdAndCodigoAndUsadoFalseAndFechaExpiraAfter(
-        Long idUsuario, String codigo, LocalDateTime ahora);
+    Optional<CodigoRecuperacion> findFirstByUsuarioIdAndUsadoFalseAndFechaExpiraAfter(
+        Long idUsuario, LocalDateTime ahora);
 }

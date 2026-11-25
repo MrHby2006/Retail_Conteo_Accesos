@@ -27,6 +27,7 @@ interface AccesoApi {
     @GET("api/v1/ingresos/candidatos")
     suspend fun candidatos(
         @Query("idRango") idRango: Long?,
+        @Query("idAltura") idAltura: Long?,
         @Query("idColorSuperior") idColorSuperior: Long?,
         @Query("idColorInferior") idColorInferior: Long?,
         @Query("fecha") fecha: String?

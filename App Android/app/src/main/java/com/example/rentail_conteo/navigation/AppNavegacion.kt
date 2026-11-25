@@ -8,6 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -65,8 +66,8 @@ fun AppNavegacion() {
 
         composable(Ruta.RecuperarContrasena.ruta) {
             RecuperarContrasenaScreen(
-                onVolver = { navController.popBackStack() },
-                onListo = { navController.popBackStack() }
+                onVolver = { volver(navController) },
+                onListo = { volver(navController) }
             )
         }
 
@@ -99,7 +100,7 @@ fun AppNavegacion() {
             PerfilScreen(
                 usuario = actual,
                 onUsuarioActualizado = { sesionViewModel.iniciarSesion(it) },
-                onVolver = { navController.popBackStack() },
+                onVolver = { volver(navController) },
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
             )
         }
@@ -108,7 +109,7 @@ fun AppNavegacion() {
             val actual = usuario ?: return@composable
             EmpleadosScreen(
                 admin = actual,
-                onVolver = { navController.popBackStack() },
+                onVolver = { volver(navController) },
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
             )
         }
@@ -117,7 +118,7 @@ fun AppNavegacion() {
             val actual = usuario ?: return@composable
             HorarioScreen(
                 usuario = actual,
-                onVolver = { navController.popBackStack() },
+                onVolver = { volver(navController) },
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
             )
         }
@@ -127,7 +128,7 @@ fun AppNavegacion() {
                 viewModel = viewModel(),
                 onConsultarClicked = { idAcceso -> navController.navigate(Ruta.Indicadores.conAcceso(idAcceso)) },
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) },
-                onVolver = { navController.popBackStack() }
+                onVolver = { volver(navController) }
             )
         }
 
@@ -137,7 +138,7 @@ fun AppNavegacion() {
         ) { entrada ->
             IndicadoresScreen(
                 idAcceso = entrada.arguments?.getInt("idAcceso") ?: 0,
-                onVolver = { navController.popBackStack() },
+                onVolver = { volver(navController) },
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) }
             )
         }
@@ -169,7 +170,7 @@ fun AppNavegacion() {
             PortonScreen(
                 observador = actual,
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) },
-                onVolver = { navController.popBackStack() }
+                onVolver = { volver(navController) }
             )
         }
 
@@ -178,7 +179,7 @@ fun AppNavegacion() {
             RegistrosClientesScreen(
                 cajero = actual,
                 onCerrarSesion = { cerrarSesion(sesionViewModel, navController) },
-                onVolver = { navController.popBackStack() }
+                onVolver = { volver(navController) }
             )
         }
     }
@@ -190,6 +191,11 @@ private fun rutaInicial(usuario: Usuario?): String = when {
     usuario.rolId == Rol.ADMINISTRADOR -> Ruta.Admin.ruta
     usuario.rolId == Rol.SUPERVISOR -> Ruta.Turnos.ruta
     else -> Ruta.InicioTrabajador.ruta
+}
+
+private fun volver(navController: NavHostController) {
+    val pantallaLista = navController.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED
+    if (pantallaLista && navController.previousBackStackEntry != null) navController.popBackStack()
 }
 
 private fun cerrarSesion(sesion: SesionViewModel, navController: NavHostController) {

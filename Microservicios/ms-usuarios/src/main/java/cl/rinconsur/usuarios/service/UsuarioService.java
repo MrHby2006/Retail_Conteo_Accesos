@@ -183,17 +183,6 @@ public class UsuarioService {
         return toDTO(user);
     }
 
-    public CuentaCreadaDTO nuevaContrasenaTemporal(Long id) {
-        Usuario user = buscar(id);
-        String temporal = contrasenaTemporal();
-        user.setPasswordHash(encoder.encode(temporal));
-        user.setDebeCambiarContrasena(true);
-        usuarioRep.save(user);
-        boolean enviado = enviar("CONTRASENA_TEMPORAL", user, "Nueva contraseña temporal de FlujoSur",
-                PlantillasCorreo.contrasenaTemporal(user.getNombres(), RutUtil.formatear(user.getRut()), temporal));
-        return new CuentaCreadaDTO(toDTO(user), temporal, enviado);
-    }
-
     private void revisarDatosEmpleado(EmpleadoDTO dto) {
         if (vacio(dto.getNombres()) || vacio(dto.getApellidoPaterno()) || vacio(dto.getCargo())) {
             throw new RuntimeException("Faltan el nombre, el apellido paterno o el cargo");

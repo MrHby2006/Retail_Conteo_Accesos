@@ -46,6 +46,9 @@ interface TurnoApi {
     @DELETE("api/v1/turnos/{id}")
     suspend fun eliminar(@Path("id") id: Long): ResponseBody
 
+    @POST("api/v1/turnos/copiar")
+    suspend fun copiarDia(@Body datos: CopiaDiaRequest): Int
+
     @POST("api/v1/turnos/publicar")
     suspend fun publicar(@Body datos: PublicacionRequest): PublicacionResponse
 

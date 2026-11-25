@@ -20,6 +20,18 @@ services:
     networks:
       - rinconsur-net
 
+  mailpit:
+    image: axllent/mailpit:v1.34
+    container_name: mailpit
+    environment:
+      TZ: America/Santiago
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    restart: on-failure
+    networks:
+      - rinconsur-net
+
   eureka-server:
     build:
       context: ./eureka-server
@@ -94,8 +106,8 @@ services:
       DB_PORT: 3306
       DB_USUARIO: root
       DB_CLAVE: ${MYSQL_ROOT_PASSWORD}
-      MAIL_USUARIO: ${MAIL_USUARIO}
-      MAIL_CLAVE: ${MAIL_CLAVE}
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
     depends_on:
       mysql:
         condition: service_healthy

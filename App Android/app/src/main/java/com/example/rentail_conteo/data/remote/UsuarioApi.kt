@@ -44,9 +44,6 @@ interface UsuarioApi {
     @PUT("api/v1/usuarios/{id}/contrasena")
     suspend fun cambiarContrasena(@Path("id") id: Long, @Body datos: CambioContrasenaRequest): UsuarioResponse
 
-    @POST("api/v1/usuarios/{id}/contrasena-temporal")
-    suspend fun contrasenaTemporal(@Path("id") id: Long): CuentaCreadaResponse
-
     @Multipart
     @POST("api/v1/usuarios/{id}/foto")
     suspend fun subirFoto(@Path("id") id: Long, @Part archivo: MultipartBody.Part): UsuarioResponse

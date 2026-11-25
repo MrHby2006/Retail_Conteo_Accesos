@@ -56,12 +56,13 @@ public class IngresoController {
 
     @GetMapping("/candidatos")
     public ResponseEntity<?> candidatos(@RequestParam(required = false) Long idRango,
+                                        @RequestParam(required = false) Long idAltura,
                                         @RequestParam(required = false) Long idColorSuperior,
                                         @RequestParam(required = false) Long idColorInferior,
                                         @RequestParam(required = false) Long idAcceso,
                                         @RequestParam(required = false) LocalDate fecha,
                                         @RequestParam(required = false) String franja) {
-        return ResponseEntity.ok(serv.candidatos(idRango, idColorSuperior, idColorInferior, idAcceso, fecha, franja));
+        return ResponseEntity.ok(serv.candidatos(idRango, idAltura, idColorSuperior, idColorInferior, idAcceso, fecha, franja));
     }
 
     @PutMapping("/{id}/compra")

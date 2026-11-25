@@ -3,6 +3,7 @@ package com.example.rentail_conteo.viewmodel
 import com.example.rentail_conteo.model.Opcion
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -11,7 +12,7 @@ class PortonViewModelTest {
 
     @Before
     fun preparar() {
-        viewModel = PortonViewModel()
+        viewModel = PortonViewModel(horaActual = { "12:00" })
     }
 
     @Test
@@ -23,6 +24,16 @@ class PortonViewModelTest {
         assertEquals("Elige la altura", viewModel.uiState.value.errorAltura)
         assertEquals("Elige el color de arriba", viewModel.uiState.value.errorColor)
         assertEquals("Elige el color de abajo", viewModel.uiState.value.errorColorAbajo)
+    }
+
+    @Test
+    fun onRegistrar_conLaTiendaCerrada_avisaYNoValidaElFormulario() {
+        viewModel = PortonViewModel(horaActual = { "23:00" })
+
+        viewModel.onRegistrar(idObservador = 1L)
+
+        assertTrue(viewModel.uiState.value.mensaje!!.contains("La tienda está cerrada"))
+        assertNull(viewModel.uiState.value.errorAcceso)
     }
 
     @Test

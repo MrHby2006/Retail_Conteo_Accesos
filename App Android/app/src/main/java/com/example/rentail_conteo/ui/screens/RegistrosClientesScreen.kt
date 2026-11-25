@@ -183,6 +183,15 @@ private fun BuscarComprador(uiState: RegistrosClientesUIState, viewModel: Regist
         }
         item {
             SeleccionChips(
+                titulo = "Altura",
+                opciones = uiState.alturas,
+                seleccionada = uiState.filtroAltura,
+                onSeleccionar = viewModel::onFiltroAltura,
+                textoDe = { it.nombre }
+            )
+        }
+        item {
+            SeleccionChips(
                 titulo = "Color de arriba",
                 opciones = uiState.colores,
                 seleccionada = uiState.filtroColor,

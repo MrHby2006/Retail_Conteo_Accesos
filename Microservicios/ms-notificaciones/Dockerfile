@@ -2,9 +2,8 @@ FROM eclipse-temurin:21-jdk-alpine AS build
 RUN apk add --no-cache maven
 WORKDIR /app
 COPY pom.xml .
-RUN mvn dependency:go-offline -B -q
 COPY src ./src
-RUN mvn package -DskipTests -B -q
+RUN --mount=type=cache,id=maven-rinconsur,target=/root/.m2,sharing=locked mvn package -DskipTests -B -q
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app

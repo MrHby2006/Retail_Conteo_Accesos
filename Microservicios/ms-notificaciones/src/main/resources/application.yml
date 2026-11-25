@@ -10,18 +10,16 @@ spring:
       ddl-auto: update
     show-sql: true
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USUARIO:}
-    password: ${MAIL_CLAVE:}
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
     properties:
       mail:
         smtp:
-          auth: true
-          starttls:
-            enable: true
           connectiontimeout: 10000
           timeout: 10000
+
+correo:
+  remitente: ${MAIL_REMITENTE:flujosur@rinconsur.cl}
 
 server:
   port: 8083

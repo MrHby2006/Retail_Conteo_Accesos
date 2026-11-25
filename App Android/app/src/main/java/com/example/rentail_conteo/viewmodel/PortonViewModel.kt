@@ -17,7 +17,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class PortonViewModel : ViewModel() {
+class PortonViewModel(
+    private val horaActual: () -> String = { Fechas.hora(Fechas.ahora()) }
+) : ViewModel() {
     private val accesoRepositorio = AccesoRepository()
     private val turnoRepositorio = TurnoRepository()
 
@@ -84,7 +86,7 @@ class PortonViewModel : ViewModel() {
         val estado = _uiState.value
         if (estado.guardando) return
 
-        if (!Franjas.tiendaAbierta(Fechas.hora(Fechas.ahora()))) {
+        if (!Franjas.tiendaAbierta(horaActual())) {
             _uiState.update {
                 it.copy(mensaje = "La tienda está cerrada (abre de ${Franjas.APERTURA} a ${Franjas.CIERRE}). No se pueden registrar ingresos ahora")
             }

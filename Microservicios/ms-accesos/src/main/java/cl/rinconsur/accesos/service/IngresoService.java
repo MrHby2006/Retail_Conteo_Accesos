@@ -84,11 +84,14 @@ public class IngresoService {
                 idAcceso, fecha.atStartOfDay(), fecha.plusDays(1).atStartOfDay());
     }
 
-    public List<IngresoDTO> candidatos(Long idRango, Long idColorSuperior, Long idColorInferior,
+    public List<IngresoDTO> candidatos(Long idRango, Long idAltura, Long idColorSuperior, Long idColorInferior,
                                        Long idAcceso, LocalDate fecha, String franja) {
         List<IngresoDTO> lista = new ArrayList<>();
         for (PersonaIngreso p : ingresoRep.findByComproFalseAndAnuladoFalseOrderByFechaHoraDesc()) {
             if (idRango != null && !p.getRango().getId().equals(idRango)) {
+                continue;
+            }
+            if (idAltura != null && !p.getAltura().getId().equals(idAltura)) {
                 continue;
             }
             if (idColorSuperior != null && !p.getColorSuperior().getId().equals(idColorSuperior)) {

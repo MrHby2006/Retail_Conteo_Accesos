@@ -88,21 +88,6 @@ fun EmpleadosScreen(
         )
     }
 
-    uiState.porClaveNueva?.let { empleado ->
-        AlertDialog(
-            onDismissRequest = viewModel::onCancelarClaveNueva,
-            title = { Text("Recuperación de clave") },
-            text = {
-                Text(
-                    "Se enviará una contraseña temporal a ${empleado.nombre}, al correo " +
-                            "${empleado.correoPersonal}. Su contraseña actual dejará de funcionar."
-                )
-            },
-            confirmButton = { TextButton(onClick = viewModel::onConfirmarClaveNueva) { Text("Enviar") } },
-            dismissButton = { TextButton(onClick = viewModel::onCancelarClaveNueva) { Text("Cancelar") } }
-        )
-    }
-
     Scaffold(
         topBar = { BarraSuperior(titulo = "Empleados", onCerrarSesion = onCerrarSesion, onVolver = onVolver) },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -141,7 +126,6 @@ fun EmpleadosScreen(
                 TarjetaEmpleado(
                     empleado = empleado,
                     onEditar = { viewModel.onEditar(empleado) },
-                    onClaveNueva = { viewModel.onPedirClaveNueva(empleado) },
                     onDesactivar = { viewModel.onPedirDesactivar(empleado, admin.id) }
                 )
             }
@@ -225,7 +209,7 @@ private fun FormularioEmpleado(uiState: EmpleadosUIState, viewModel: EmpleadosVi
             label = { Text("Correo personal") },
             leadingIcon = { Icon(painterResource(R.drawable.ic_correo), contentDescription = null) },
             isError = uiState.errorCorreoPersonal != null,
-            supportingText = { Text(uiState.errorCorreoPersonal ?: "Aquí le llegarán su contraseña temporal y la recuperación de clave") },
+            supportingText = { Text(uiState.errorCorreoPersonal ?: "Aquí le llegará su contraseña temporal") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             modifier = Modifier.fillMaxWidth()
@@ -253,7 +237,6 @@ private fun FormularioEmpleado(uiState: EmpleadosUIState, viewModel: EmpleadosVi
 private fun TarjetaEmpleado(
     empleado: Usuario,
     onEditar: () -> Unit,
-    onClaveNueva: () -> Unit,
     onDesactivar: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -280,7 +263,6 @@ private fun TarjetaEmpleado(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextButton(onClick = onEditar) { Text("Editar") }
-                TextButton(onClick = onClaveNueva) { Text("Recuperación clave") }
                 if (empleado.rolId != Rol.ADMINISTRADOR) {
                     TextButton(onClick = onDesactivar) { Text("Desactivar") }
                 }

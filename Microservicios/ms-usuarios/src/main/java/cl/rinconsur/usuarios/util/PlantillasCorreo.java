@@ -13,14 +13,6 @@ public class PlantillasCorreo {
                 + "La primera vez que ingreses la app te pedirá crear una contraseña propia." + FIRMA;
     }
 
-    public static String contrasenaTemporal(String nombres, String rut, String temporal) {
-        return "Hola, " + nombres + ":\n\n"
-                + "El administrador generó una contraseña temporal nueva para tu cuenta.\n\n"
-                + "RUT: " + rut + "\n"
-                + "Contraseña temporal: " + temporal + "\n\n"
-                + "Al ingresar tendrás que crear una contraseña propia." + FIRMA;
-    }
-
     public static String codigoRecuperacion(String nombres, String codigo, int minutos) {
         return "Hola, " + nombres + ":\n\n"
                 + "Pediste recuperar tu contraseña de FlujoSur. Tu código es:\n\n"
