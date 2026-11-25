@@ -35,8 +35,8 @@ public class DataLoader {
 
             Puesto caja = puestoRep.save(new Puesto(null, "CAJA", "Caja", "CAJA", null, true));
             Puesto a1 = puestoRep.save(new Puesto(null, "A1", "Puerta A1", "PUERTA", 1L, true));
-            puestoRep.save(new Puesto(null, "A2", "Puerta A2", "PUERTA", 2L, true));
-            puestoRep.save(new Puesto(null, "A3", "Puerta A3", "PUERTA", 3L, true));
+            Puesto a2 = puestoRep.save(new Puesto(null, "A2", "Puerta A2", "PUERTA", 2L, true));
+            Puesto a3 = puestoRep.save(new Puesto(null, "A3", "Puerta A3", "PUERTA", 3L, true));
             Puesto a4 = puestoRep.save(new Puesto(null, "A4", "Puerta A4", "PUERTA", 4L, true));
 
             estadoTurnoRep.save(new EstadoTurno(null, "BORRADOR"));
@@ -47,16 +47,28 @@ public class DataLoader {
             estadoSolicitudRep.save(new EstadoSolicitud(null, "RECHAZADA"));
 
             LocalDate lunes = LocalDate.now().with(DayOfWeek.MONDAY);
-            Object[][] turnos = {
+            Object[][] fijos = {
                 {5L, 3L, manana, a4},
                 {7L, 3L, manana, caja},
                 {6L, 4L, tarde, a1},
                 {9L, 4L, tarde, caja}
             };
+            Long[] rotan = {8L, 10L, 11L, 12L, 13L, 14L, 15L, 16L, 17L, 18L, 19L, 20L, 21L, 22L, 23L, 24L};
+            Puesto[] puertasManana = {a1, a2, a3};
+            Puesto[] puertasTarde = {a2, a3, a4};
             for (int dia = 0; dia < 7; dia++) {
                 LocalDate fecha = lunes.plusDays(dia);
-                for (Object[] t : turnos) {
+                for (Object[] t : fijos) {
                     turnoRep.save(new Turno(null, (Long) t[0], (Long) t[1], fecha, (Franja) t[2], (Puesto) t[3], publicado,
+                            LocalDateTime.now(), LocalDateTime.now()));
+                }
+                int siguiente = dia * 6;
+                for (Puesto puerta : puertasManana) {
+                    turnoRep.save(new Turno(null, rotan[siguiente++ % rotan.length], 3L, fecha, manana, puerta, publicado,
+                            LocalDateTime.now(), LocalDateTime.now()));
+                }
+                for (Puesto puerta : puertasTarde) {
+                    turnoRep.save(new Turno(null, rotan[siguiente++ % rotan.length], 4L, fecha, tarde, puerta, publicado,
                             LocalDateTime.now(), LocalDateTime.now()));
                 }
             }

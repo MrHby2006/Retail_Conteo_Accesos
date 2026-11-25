@@ -116,14 +116,4 @@ public class UsuarioController {
             return ResponseEntity.notFound().build();
         }
     }
-
-    @PostMapping("/{id}/contrasena-temporal")
-    @Operation(summary = "Crea una contraseña temporal que el usuario puede usar")
-    public ResponseEntity<?> contrasenaTemporal(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(serv.nuevaContrasenaTemporal(id));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
 }

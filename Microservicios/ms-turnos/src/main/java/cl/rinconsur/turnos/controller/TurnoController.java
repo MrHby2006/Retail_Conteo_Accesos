@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import cl.rinconsur.turnos.dto.CopiaDiaDTO;
 import cl.rinconsur.turnos.dto.PublicacionDTO;
 import cl.rinconsur.turnos.dto.TurnoDTO;
 import cl.rinconsur.turnos.dto.TurnoNuevoDTO;
@@ -101,6 +102,16 @@ public class TurnoController {
         try {
             serv.eliminar(id);
             return ResponseEntity.ok("Turno quitado");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/copiar")
+    @Operation(summary = "Copia los turnos de un día a los días de la semana que están vacíos")
+    public ResponseEntity<?> copiarDia(@RequestBody CopiaDiaDTO dto) {
+        try {
+            return ResponseEntity.ok(serv.copiarDia(dto));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

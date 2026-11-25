@@ -31,13 +31,12 @@ public class NotificacionService {
     @Autowired
     private TipoNotificacionRepository tipoRep;
 
-    @Value("${spring.mail.username:}")
+    @Value("${correo.remitente}")
     private String remitente;
 
     public NotificacionDTO enviarCorreo(CorreoDTO dto) {
         String error = null;
         try {
-            revisarConfiguracion();
             SimpleMailMessage mensaje = new SimpleMailMessage();
             mensaje.setFrom(remitente);
             mensaje.setTo(dto.getDestinatario());
@@ -58,7 +57,6 @@ public class NotificacionService {
         }
         String error = null;
         try {
-            revisarConfiguracion();
             SimpleMailMessage mensaje = new SimpleMailMessage();
             mensaje.setFrom(remitente);
             mensaje.setTo(remitente);
@@ -90,12 +88,6 @@ public class NotificacionService {
             lista.add(toDTO(n));
         }
         return lista;
-    }
-
-    private void revisarConfiguracion() {
-        if (remitente == null || remitente.isBlank()) {
-            throw new RuntimeException("El envío de correos no está configurado (faltan MAIL_USUARIO y MAIL_CLAVE)");
-        }
     }
 
     private Notificacion guardar(String tipo, Long idUsuario, String destinatario, String asunto, String error) {

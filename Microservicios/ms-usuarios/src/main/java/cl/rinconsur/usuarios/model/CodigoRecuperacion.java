@@ -34,8 +34,8 @@ public class CodigoRecuperacion {
     @Schema(description = "Representa al usuario que presento el código de recuperación")
     private Usuario usuario;
 
-    @Column(nullable = false, length = 6)
-    @Schema(description = "Código de recuperación", example = "HX421S")
+    @Column(nullable = false, length = 100)
+    @Schema(description = "Código de recuperación cifrado con BCrypt")
     private String codigo;
 
     @Column(name = "fecha_creacion", nullable = false)
